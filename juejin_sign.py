@@ -6,6 +6,9 @@
 import requests
 import time
 import random
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 from urllib3.exceptions import InsecureRequestWarning
 
 # 禁用SSL验证警告
@@ -17,14 +20,23 @@ COOKIE = "_tea_utm_cache_2608=undefined; __tea_cookie_tokens_2608=%257B%2522web_
 
 # 尝试从外部配置文件导入Cookie（用于GitHub Action）
 try:
-    from cookie_config import COOKIE
+    from cookie_config import COOKIE, EMAIL_FROM, EMAIL_PASSWORD
 except ImportError:
     pass
+
+# 邮件配置
+EMAIL_TO = "maker196@163.com"
+EMAIL_FROM = ""  # 发件邮箱
+EMAIL_PASSWORD = "RDWkY8YTWGQ7QkYB"  # 邮箱授权码
+SMTP_SERVER = "smtp.163.com"
+SMTP_PORT = 465
 
 # API配置
 BASE_URL = "https://api.juejin.cn/growth_api/v1/"
 CHECK_IN_URL = BASE_URL + "check_in"
 GET_STATUS_URL = BASE_URL + "get_today_status"
+LOTTERY_DRAW_URL = BASE_URL + "lottery/draw"
+JUEJIN_HOME_URL = "https://juejin.cn/"
 
 # 随机User-Agent列表
 USER_AGENTS = [
@@ -60,6 +72,23 @@ def get_random_headers():
         'Sec-Fetch-Site': 'same-site'
     }
 # ==================== 配置区域结束 ====================
+
+def visit_juejin_home():
+    """
+    访问掘金首页，模拟真实用户行为
+    """
+    try:
+        headers = get_random_headers()
+        time.sleep(random.uniform(0.5, 2))
+        response = requests.get(JUEJIN_HOME_URL, headers=headers, verify=False, timeout=10)
+        if response.status_code == 200:
+            print("成功访问掘金首页")
+            return True
+        else:
+            print(f"访问掘金首页失败: {response.status_code}")
+    except Exception as e:
+        print(f"访问掘金首页异常: {str(e)}")
+    return False
 
 def get_today_status():
     """
@@ -110,6 +139,55 @@ def check_in():
         print(f"签到异常: {str(e)}")
     return False
 
+def lottery_draw():
+    """
+    执行免费抽奖操作
+    """
+    try:
+        headers = get_random_headers()
+        time.sleep(random.uniform(0.5, 2))
+        response = requests.post(LOTTERY_DRAW_URL, headers=headers, verify=False, timeout=10)
+        if response.status_code == 200:
+            data = response.json()
+            if data.get('err_no') == 0:
+                lottery_data = data.get('data', {})
+                lottery_name = lottery_data.get('lottery_name', '未知奖品')
+                print(f"抽奖成功！获得: {lottery_name}")
+                return lottery_name
+            else:
+                print(f"抽奖失败: {data.get('err_msg')}")
+        else:
+            print(f"抽奖请求失败: {response.status_code}")
+    except Exception as e:
+        print(f"抽奖异常: {str(e)}")
+    return None
+
+def send_email(subject, content):
+    """
+    发送邮件通知
+    """
+    try:
+        if not EMAIL_FROM or not EMAIL_PASSWORD:
+            print("邮件配置不完整，跳过邮件发送")
+            return False
+        
+        msg = MIMEMultipart()
+        msg['From'] = EMAIL_FROM
+        msg['To'] = EMAIL_TO
+        msg['Subject'] = subject
+        
+        msg.attach(MIMEText(content, 'plain', 'utf-8'))
+        
+        server = smtplib.SMTP_SSL(SMTP_SERVER, SMTP_PORT)
+        server.login(EMAIL_FROM, EMAIL_PASSWORD)
+        server.sendmail(EMAIL_FROM, EMAIL_TO, msg.as_string())
+        server.quit()
+        print(f"邮件发送成功: {EMAIL_TO}")
+        return True
+    except Exception as e:
+        print(f"邮件发送失败: {str(e)}")
+        return False
+
 def main():
     """
     主函数
@@ -121,18 +199,35 @@ def main():
     print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] 随机延迟 {random_delay} 秒后执行签到")
     time.sleep(random_delay)
     
+    # 访问掘金首页
+    print("开始访问掘金首页...")
+    visit_juejin_home()
+    
     # 检查今天是否已签到
     is_signed = get_today_status()
     if is_signed:
         print("今天已经签到过了，无需重复签到")
+        lottery_result = lottery_draw()
+        email_content = f"掘金签到结果\n\n时间: {time.strftime('%Y-%m-%d %H:%M:%S')}\n\n签到状态: 已签到\n抽奖结果: {lottery_result if lottery_result else '抽奖失败'}"
+        send_email("掘金签到通知", email_content)
         return
     
     # 执行签到
+    print("开始执行签到...")
     success = check_in()
     if success:
         print("签到完成！")
+        # 执行抽奖
+        print("开始执行免费抽奖...")
+        lottery_result = lottery_draw()
+        
+        # 发送邮件通知
+        email_content = f"掘金签到结果\n\n时间: {time.strftime('%Y-%m-%d %H:%M:%S')}\n\n签到状态: 签到成功\n抽奖结果: {lottery_result if lottery_result else '抽奖失败'}"
+        send_email("掘金签到通知", email_content)
     else:
         print("签到失败，请检查配置")
+        email_content = f"掘金签到结果\n\n时间: {time.strftime('%Y-%m-%d %H:%M:%S')}\n\n签到状态: 签到失败\n错误信息: 请检查Cookie配置"
+        send_email("掘金签到通知", email_content)
 
 if __name__ == "__main__":
     main()
