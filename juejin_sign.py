@@ -26,7 +26,7 @@ except ImportError:
 
 # 邮件配置
 EMAIL_TO = "maker196@163.com"
-EMAIL_FROM = ""  # 发件邮箱
+EMAIL_FROM = "maker196@163.com"  # 发件邮箱
 EMAIL_PASSWORD = "RDWkY8YTWGQ7QkYB"  # 邮箱授权码
 SMTP_SERVER = "smtp.163.com"
 SMTP_PORT = 465
@@ -148,27 +148,40 @@ def lottery_draw():
         time.sleep(random.uniform(0.5, 2))
         response = requests.post(LOTTERY_DRAW_URL, headers=headers, verify=False, timeout=10)
         if response.status_code == 200:
-            data = response.json()
-            if data.get('err_no') == 0:
-                lottery_data = data.get('data', {})
-                lottery_name = lottery_data.get('lottery_name', '未知奖品')
-                print(f"抽奖成功！获得: {lottery_name}")
-                return lottery_name
-            else:
-                print(f"抽奖失败: {data.get('err_msg')}")
+            try:
+                data = response.json()
+                if data.get('err_no') == 0:
+                    lottery_data = data.get('data', {})
+                    lottery_name = lottery_data.get('lottery_name', '未知奖品')
+                    print(f"抽奖成功！获得: {lottery_name}")
+                    return lottery_name
+                else:
+                    error_msg = data.get('err_msg', '未知错误')
+                    print(f"抽奖失败: {error_msg}")
+                    if '今天已经抽过奖' in error_msg or 'already' in error_msg.lower():
+                        print("提示：今天已经抽过奖了，无需重复抽奖")
+                        return "今天已经抽过奖"
+            except ValueError as e:
+                print(f"抽奖响应解析失败: {str(e)}")
+                print("提示：可能今天已经抽过奖了")
+                return "今天已经抽过奖"
         else:
             print(f"抽奖请求失败: {response.status_code}")
     except Exception as e:
         print(f"抽奖异常: {str(e)}")
-    return None
+        print("提示：可能今天已经抽过奖了")
+    return "抽奖失败"
 
 def send_email(subject, content):
     """
     发送邮件通知
     """
     try:
-        if not EMAIL_FROM or not EMAIL_PASSWORD:
-            print("邮件配置不完整，跳过邮件发送")
+        if not EMAIL_FROM:
+            print("邮件配置不完整：未设置发件邮箱，跳过邮件发送")
+            return False
+        if not EMAIL_PASSWORD:
+            print("邮件配置不完整：未设置邮箱密码/授权码，跳过邮件发送")
             return False
         
         msg = MIMEMultipart()
@@ -186,6 +199,7 @@ def send_email(subject, content):
         return True
     except Exception as e:
         print(f"邮件发送失败: {str(e)}")
+        print("提示：邮件发送失败不会影响签到和抽奖功能")
         return False
 
 def main():
