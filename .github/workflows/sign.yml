@@ -1,4 +1,4 @@
-name: juejinAuto签到
+name: 掘金自动签到
 
 on:
   schedule:
@@ -24,10 +24,12 @@ jobs:
         python -m pip install --upgrade pip
         pip install requests
     
-    - name: 配置Cookie
+    - name: 配置Cookie和邮件
       run: |
         # 将环境变量写入配置文件
         echo "COOKIE = '${{ secrets.JUEJIN_COOKIE }}'" > cookie_config.py
+        echo "EMAIL_FROM = '${{ secrets.EMAIL_FROM }}'" >> cookie_config.py
+        echo "EMAIL_PASSWORD = '${{ secrets.EMAIL_PASSWORD }}'" >> cookie_config.py
     
     - name: 运行签到脚本
       run: |
