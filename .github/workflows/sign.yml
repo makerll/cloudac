@@ -1,0 +1,41 @@
+name: 掘金自动签到
+
+on:
+  schedule:
+    # 每天随机时间运行（使用cron表达式的随机分钟）
+    - cron: '0 0-23/3 * * *'  # 每3小时运行一次，配合脚本内随机延迟实现随机签到
+  workflow_dispatch:  # 手动触发
+
+jobs:
+  sign:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: 设置Python环境
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+    
+    - name: 安装依赖
+      run: |
+        python -m pip install --upgrade pip
+        pip install requests
+    
+    - name: 配置Cookie
+      run: |
+        # 将环境变量写入配置文件
+        echo "COOKIE = '${{ secrets.JUEJIN_COOKIE }}'" > cookie_config.py
+    
+    - name: 运行签到脚本
+      run: |
+        # 修改脚本以使用环境变量中的Cookie
+        sed -i 's/COOKIE = ""/from cookie_config import COOKIE/' juejin_sign.py
+        python juejin_sign.py
+    
+    - name: 清理
+      if: always()
+      run: |
+        rm -f cookie_config.py
