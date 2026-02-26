@@ -76,7 +76,10 @@ def get_today_status():
             if data.get('err_no') == 0:
                 return data.get('data', False)
             else:
-                print(f"获取签到状态失败: {data.get('err_msg')}")
+                error_msg = data.get('err_msg', '未知错误')
+                print(f"获取签到状态失败: {error_msg}")
+                if 'login' in error_msg.lower():
+                    print("提示：请检查Cookie是否有效，可能已过期或格式错误")
         else:
             print(f"获取签到状态请求失败: {response.status_code}")
     except Exception as e:
