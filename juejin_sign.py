@@ -7,6 +7,7 @@ import requests
 import time
 import random
 import smtplib
+from datetime import datetime, timezone, timedelta
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from urllib3.exceptions import InsecureRequestWarning
@@ -71,6 +72,22 @@ def get_random_headers():
         'Sec-Fetch-Mode': 'cors',
         'Sec-Fetch-Site': 'same-site'
     }
+# 获取中国时区时间
+def get_china_time():
+    """
+    获取中国时区（UTC+8）的当前时间
+    """
+    # 创建UTC+8时区
+    china_tz = timezone(timedelta(hours=8))
+    return datetime.now(china_tz)
+
+# 格式化中国时区时间
+def format_china_time():
+    """
+    格式化中国时区时间为字符串
+    """
+    return get_china_time().strftime('%Y-%m-%d %H:%M:%S')
+
 # ==================== 配置区域结束 ====================
 
 def visit_juejin_home():
@@ -176,7 +193,7 @@ def create_email_html(sign_status, lottery_result):
     """
     创建HTML格式的邮件内容
     """
-    current_time = time.strftime('%Y-%m-%d %H:%M:%S')
+    current_time = format_china_time()
     
     # 根据签到状态设置颜色
     if "成功" in sign_status:
@@ -202,15 +219,26 @@ def create_email_html(sign_status, lottery_result):
     <html>
     <head>
         <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <style>
             body {{
                 font-family: 'Microsoft YaHei', Arial, sans-serif;
                 background-color: #f5f5f5;
                 margin: 0;
-                padding: 20px;
+                padding: 0;
+                width: 100%;
+                min-width: 100%;
+            }}
+            table {{
+                border-collapse: collapse;
+                mso-table-lspace: 0pt;
+                mso-table-rspace: 0pt;
+                width: 100%;
+                min-width: 100%;
             }}
             .container {{
                 max-width: 600px;
+                width: 100%;
                 margin: 0 auto;
                 background-color: #ffffff;
                 border-radius: 10px;
@@ -220,36 +248,45 @@ def create_email_html(sign_status, lottery_result):
             .header {{
                 background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
                 color: white;
-                padding: 30px;
+                padding: 40px 30px;
                 text-align: center;
+                width: 100%;
             }}
+
             .header h1 {{
                 margin: 0;
-                font-size: 28px;
+                font-size: 32px;
                 font-weight: bold;
             }}
             .content {{
-                padding: 30px;
+                padding: 40px 30px;
+                width: 100%;
             }}
             .info-item {{
-                margin-bottom: 25px;
-                padding: 20px;
+                margin-bottom: 30px;
+                padding: 25px;
                 background-color: #f9f9f9;
-                border-radius: 8px;
-                border-left: 4px solid #667eea;
+                border-radius: 10px;
+                border-left: 5px solid #667eea;
+                width: 100%;
+                box-sizing: border-box;
             }}
             .info-item:last-child {{
                 margin-bottom: 0;
             }}
             .info-label {{
-                font-size: 14px;
+                font-size: 16px;
                 color: #999;
-                margin-bottom: 8px;
+                margin-bottom: 12px;
+                display: block;
             }}
             .info-value {{
-                font-size: 18px;
+                font-size: 20px;
                 font-weight: bold;
                 color: #333;
+                display: flex;
+                align-items: center;
+                width: 100%;
             }}
             .success {{
                 color: {sign_color};
@@ -259,47 +296,76 @@ def create_email_html(sign_status, lottery_result):
             }}
             .footer {{
                 background-color: #f9f9f9;
-                padding: 20px;
+                padding: 30px 20px;
                 text-align: center;
                 color: #999;
-                font-size: 12px;
+                font-size: 14px;
+                width: 100%;
             }}
             .emoji {{
-                font-size: 24px;
-                margin-right: 10px;
+                font-size: 28px;
+                margin-right: 15px;
+            }}
+            @media only screen and (max-width: 600px) {{
+                .container {{
+                    width: 100% !important;
+                    max-width: 100% !important;
+                    border-radius: 0;
+                }}
+                .header {{
+                    padding: 30px 20px;
+                }}
+                .content {{
+                    padding: 30px 20px;
+                }}
+                .info-item {{
+                    padding: 20px;
+                }}
+                .header h1 {{
+                    font-size: 24px;
+                }}
+                .info-value {{
+                    font-size: 18px;
+                }}
             }}
         </style>
     </head>
     <body>
-        <div class="container">
-            <div class="header">
-                <h1>🎯 掘金签到通知</h1>
-            </div>
-            <div class="content">
-                <div class="info-item">
-                    <div class="info-label">📅 执行时间</div>
-                    <div class="info-value">{current_time}</div>
-                </div>
-                <div class="info-item">
-                    <div class="info-label">✍️ 签到状态</div>
-                    <div class="info-value success">
-                        <span class="emoji">{sign_icon}</span>
-                        <span class="success">{sign_status}</span>
+        <table align="center" border="0" cellpadding="0" cellspacing="0" width="100%">
+            <tr>
+                <td align="center" style="padding: 0;">
+                    <div class="container">
+                        <div class="header">
+                            <h1>🎯 掘金签到通知</h1>
+                        </div>
+                        <div class="content">
+                            <div class="info-item">
+                                <div class="info-label">📅 执行时间</div>
+                                <div class="info-value">{current_time}</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">✍️ 签到状态</div>
+                                <div class="info-value success">
+                                    <span class="emoji">{sign_icon}</span>
+                                    <span class="success">{sign_status}</span>
+                                </div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">🎲 抽奖结果</div>
+                                <div class="info-value lottery">
+                                    <span class="emoji">{lottery_icon}</span>
+                                    <span class="lottery">{lottery_result}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="footer">
+                            <p>🤖 自动签到系统 | 掘金社区</p>
+                            <p>此邮件由系统自动发送，请勿回复</p>
+                        </div>
                     </div>
-                </div>
-                <div class="info-item">
-                    <div class="info-label">🎲 抽奖结果</div>
-                    <div class="info-value lottery">
-                        <span class="emoji">{lottery_icon}</span>
-                        <span class="lottery">{lottery_result}</span>
-                    </div>
-                </div>
-            </div>
-            <div class="footer">
-                <p>🤖 自动签到系统 | 掘金社区</p>
-                <p>此邮件由系统自动发送，请勿回复</p>
-            </div>
-        </div>
+                </td>
+            </tr>
+        </table>
     </body>
     </html>
     """
@@ -342,11 +408,11 @@ def main():
     """
     主函数
     """
-    print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] 开始执行掘金签到")
+    print(f"[{format_china_time()}] 开始执行掘金签到")
     
     # 添加随机延迟（1-300秒），模拟真实用户行为
     random_delay = random.randint(1, 300)
-    print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] 随机延迟 {random_delay} 秒后执行签到")
+    print(f"[{format_china_time()}] 随机延迟 {random_delay} 秒后执行签到")
     time.sleep(random_delay)
     
     # 访问掘金首页
