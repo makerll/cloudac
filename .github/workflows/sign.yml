@@ -1,4 +1,4 @@
-name: 掘金自动签到
+name: juejinAuto签到
 
 on:
   schedule:
