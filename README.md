@@ -1,13 +1,16 @@
 # 掘金社区自动签到脚本
 
-一个功能完善的掘金社区自动签到脚本，支持每天随机时间签到，包含防检测功能，可在GitHub Action上自动运行。
+一个功能完善的掘金社区自动签到脚本，支持每天随机时间签到，包含防检测功能，可在GitHub Action上自动运行，并支持邮件通知。
 
 ## 功能特性
 
 - ✅ 自动签到功能
 - ✅ 随机时间签到（避免固定时间执行被检测）
 - ✅ 防检测机制（随机User-Agent、真实请求头模拟）
+- ✅ 签到前访问掘金首页（模拟真实用户行为）
+- ✅ 免费抽奖功能
 - ✅ 签到状态检查（避免重复签到）
+- ✅ 邮件通知功能（发送签到和抽奖结果）
 - ✅ GitHub Action自动运行
 - ✅ 详细的执行日志
 
@@ -32,9 +35,12 @@
 
 1. Fork本仓库到你的GitHub账号
 2. 进入仓库页面，点击 `Settings` → `Secrets and variables` → `Actions`
-3. 点击 `New repository secret`，创建一个名为 `JUEJIN_COOKIE` 的secret，值为你获取的Cookie
+3. 点击 `New repository secret`，创建以下Secrets：
+   - `JUEJIN_COOKIE`：值为你获取的Cookie
+   - `EMAIL_FROM`：发件邮箱地址（用于发送通知）
+   - `EMAIL_PASSWORD`：邮箱密码或授权码（163邮箱需要使用授权码）
 4. 进入 `Actions` 选项卡，启用Workflow
-5. 脚本会在每天随机时间自动运行
+5. 脚本会在每天随机时间自动运行，并将结果发送到 `maker196@163.com`
 
 ## 防检测机制
 
@@ -48,9 +54,12 @@
 
 ## 脚本原理
 
-1. 调用掘金API `https://api.juejin.cn/growth_api/v1/get_today_status` 检查今天是否已签到
-2. 如果未签到，调用 `https://api.juejin.cn/growth_api/v1/check_in` 执行签到
-3. 输出签到结果和获得的矿石数量
+1. 访问掘金首页 `https://juejin.cn/`，模拟真实用户行为
+2. 调用掘金API `https://api.juejin.cn/growth_api/v1/get_today_status` 检查今天是否已签到
+3. 如果未签到，调用 `https://api.juejin.cn/growth_api/v1/check_in` 执行签到
+4. 调用 `https://api.juejin.cn/growth_api/v1/lottery/draw` 执行免费抽奖
+5. 将签到和抽奖结果通过邮件发送到 `maker196@163.com`
+6. 输出签到结果和获得的矿石数量
 
 ## 注意事项
 
