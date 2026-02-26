@@ -172,7 +172,140 @@ def lottery_draw():
         print("提示：可能今天已经抽过奖了")
     return "抽奖失败"
 
-def send_email(subject, content):
+def create_email_html(sign_status, lottery_result):
+    """
+    创建HTML格式的邮件内容
+    """
+    current_time = time.strftime('%Y-%m-%d %H:%M:%S')
+    
+    # 根据签到状态设置颜色
+    if "成功" in sign_status:
+        sign_color = "#52c41a"
+        sign_icon = "✅"
+    else:
+        sign_color = "#ff4d4f"
+        sign_icon = "❌"
+    
+    # 根据抽奖结果设置颜色
+    if "已经抽过奖" in lottery_result:
+        lottery_color = "#faad14"
+        lottery_icon = "⏰"
+    elif "失败" in lottery_result:
+        lottery_color = "#ff4d4f"
+        lottery_icon = "❌"
+    else:
+        lottery_color = "#52c41a"
+        lottery_icon = "🎁"
+    
+    html_content = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <style>
+            body {{
+                font-family: 'Microsoft YaHei', Arial, sans-serif;
+                background-color: #f5f5f5;
+                margin: 0;
+                padding: 20px;
+            }}
+            .container {{
+                max-width: 600px;
+                margin: 0 auto;
+                background-color: #ffffff;
+                border-radius: 10px;
+                box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+                overflow: hidden;
+            }}
+            .header {{
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                padding: 30px;
+                text-align: center;
+            }}
+            .header h1 {{
+                margin: 0;
+                font-size: 28px;
+                font-weight: bold;
+            }}
+            .content {{
+                padding: 30px;
+            }}
+            .info-item {{
+                margin-bottom: 25px;
+                padding: 20px;
+                background-color: #f9f9f9;
+                border-radius: 8px;
+                border-left: 4px solid #667eea;
+            }}
+            .info-item:last-child {{
+                margin-bottom: 0;
+            }}
+            .info-label {{
+                font-size: 14px;
+                color: #999;
+                margin-bottom: 8px;
+            }}
+            .info-value {{
+                font-size: 18px;
+                font-weight: bold;
+                color: #333;
+            }}
+            .success {{
+                color: {sign_color};
+            }}
+            .lottery {{
+                color: {lottery_color};
+            }}
+            .footer {{
+                background-color: #f9f9f9;
+                padding: 20px;
+                text-align: center;
+                color: #999;
+                font-size: 12px;
+            }}
+            .emoji {{
+                font-size: 24px;
+                margin-right: 10px;
+            }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h1>🎯 掘金签到通知</h1>
+            </div>
+            <div class="content">
+                <div class="info-item">
+                    <div class="info-label">📅 执行时间</div>
+                    <div class="info-value">{current_time}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">✍️ 签到状态</div>
+                    <div class="info-value success">
+                        <span class="emoji">{sign_icon}</span>
+                        <span class="success">{sign_status}</span>
+                    </div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">🎲 抽奖结果</div>
+                    <div class="info-value lottery">
+                        <span class="emoji">{lottery_icon}</span>
+                        <span class="lottery">{lottery_result}</span>
+                    </div>
+                </div>
+            </div>
+            <div class="footer">
+                <p>🤖 自动签到系统 | 掘金社区</p>
+                <p>此邮件由系统自动发送，请勿回复</p>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+    return html_content
+
+def send_email(subject, content, is_html=False):
     """
     发送邮件通知
     """
@@ -189,7 +322,10 @@ def send_email(subject, content):
         msg['To'] = EMAIL_TO
         msg['Subject'] = subject
         
-        msg.attach(MIMEText(content, 'plain', 'utf-8'))
+        if is_html:
+            msg.attach(MIMEText(content, 'html', 'utf-8'))
+        else:
+            msg.attach(MIMEText(content, 'plain', 'utf-8'))
         
         server = smtplib.SMTP_SSL(SMTP_SERVER, SMTP_PORT)
         server.login(EMAIL_FROM, EMAIL_PASSWORD)
@@ -222,8 +358,8 @@ def main():
     if is_signed:
         print("今天已经签到过了，无需重复签到")
         lottery_result = lottery_draw()
-        email_content = f"掘金签到结果\n\n时间: {time.strftime('%Y-%m-%d %H:%M:%S')}\n\n签到状态: 已签到\n抽奖结果: {lottery_result if lottery_result else '抽奖失败'}"
-        send_email("掘金签到通知", email_content)
+        html_content = create_email_html("已签到", lottery_result)
+        send_email("掘金签到通知", html_content, is_html=True)
         return
     
     # 执行签到
@@ -236,12 +372,12 @@ def main():
         lottery_result = lottery_draw()
         
         # 发送邮件通知
-        email_content = f"掘金签到结果\n\n时间: {time.strftime('%Y-%m-%d %H:%M:%S')}\n\n签到状态: 签到成功\n抽奖结果: {lottery_result if lottery_result else '抽奖失败'}"
-        send_email("掘金签到通知", email_content)
+        html_content = create_email_html("签到成功", lottery_result)
+        send_email("掘金签到通知", html_content, is_html=True)
     else:
         print("签到失败，请检查配置")
-        email_content = f"掘金签到结果\n\n时间: {time.strftime('%Y-%m-%d %H:%M:%S')}\n\n签到状态: 签到失败\n错误信息: 请检查Cookie配置"
-        send_email("掘金签到通知", email_content)
+        html_content = create_email_html("签到失败", "请检查Cookie配置")
+        send_email("掘金签到通知", html_content, is_html=True)
 
 if __name__ == "__main__":
     main()
