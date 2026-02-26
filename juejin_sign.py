@@ -219,74 +219,54 @@ def create_email_html(sign_status, lottery_result):
     <html>
     <head>
         <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <style>
             body {{
                 font-family: 'Microsoft YaHei', Arial, sans-serif;
                 background-color: #f5f5f5;
                 margin: 0;
-                padding: 0;
-                width: 100%;
-                min-width: 100%;
-            }}
-            table {{
-                border-collapse: collapse;
-                mso-table-lspace: 0pt;
-                mso-table-rspace: 0pt;
-                width: 100%;
-                min-width: 100%;
+                padding: 20px;
             }}
             .container {{
-                max-width: 600px;
-                width: 100%;
+                max-width: 500px;
                 margin: 0 auto;
                 background-color: #ffffff;
-                border-radius: 10px;
-                box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+                border-radius: 8px;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.1);
                 overflow: hidden;
             }}
             .header {{
                 background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
                 color: white;
-                padding: 40px 30px;
+                padding: 20px;
                 text-align: center;
-                width: 100%;
             }}
-
             .header h1 {{
                 margin: 0;
-                font-size: 32px;
+                font-size: 20px;
                 font-weight: bold;
             }}
             .content {{
-                padding: 40px 30px;
-                width: 100%;
+                padding: 20px;
             }}
             .info-item {{
-                margin-bottom: 30px;
-                padding: 25px;
+                margin-bottom: 15px;
+                padding: 15px;
                 background-color: #f9f9f9;
-                border-radius: 10px;
-                border-left: 5px solid #667eea;
-                width: 100%;
-                box-sizing: border-box;
+                border-radius: 6px;
+                border-left: 4px solid #667eea;
             }}
             .info-item:last-child {{
                 margin-bottom: 0;
             }}
             .info-label {{
-                font-size: 16px;
+                font-size: 12px;
                 color: #999;
-                margin-bottom: 12px;
-                display: block;
+                margin-bottom: 6px;
             }}
             .info-value {{
-                font-size: 20px;
+                font-size: 16px;
                 font-weight: bold;
                 color: #333;
-                display: flex;
-                align-items: center;
-                width: 100%;
             }}
             .success {{
                 color: {sign_color};
@@ -296,76 +276,47 @@ def create_email_html(sign_status, lottery_result):
             }}
             .footer {{
                 background-color: #f9f9f9;
-                padding: 30px 20px;
+                padding: 15px;
                 text-align: center;
                 color: #999;
-                font-size: 14px;
-                width: 100%;
+                font-size: 12px;
             }}
             .emoji {{
-                font-size: 28px;
-                margin-right: 15px;
-            }}
-            @media only screen and (max-width: 600px) {{
-                .container {{
-                    width: 100% !important;
-                    max-width: 100% !important;
-                    border-radius: 0;
-                }}
-                .header {{
-                    padding: 30px 20px;
-                }}
-                .content {{
-                    padding: 30px 20px;
-                }}
-                .info-item {{
-                    padding: 20px;
-                }}
-                .header h1 {{
-                    font-size: 24px;
-                }}
-                .info-value {{
-                    font-size: 18px;
-                }}
+                font-size: 20px;
+                margin-right: 8px;
             }}
         </style>
     </head>
     <body>
-        <table align="center" border="0" cellpadding="0" cellspacing="0" width="100%">
-            <tr>
-                <td align="center" style="padding: 0;">
-                    <div class="container">
-                        <div class="header">
-                            <h1>🎯 掘金签到通知</h1>
-                        </div>
-                        <div class="content">
-                            <div class="info-item">
-                                <div class="info-label">📅 执行时间</div>
-                                <div class="info-value">{current_time}</div>
-                            </div>
-                            <div class="info-item">
-                                <div class="info-label">✍️ 签到状态</div>
-                                <div class="info-value success">
-                                    <span class="emoji">{sign_icon}</span>
-                                    <span class="success">{sign_status}</span>
-                                </div>
-                            </div>
-                            <div class="info-item">
-                                <div class="info-label">🎲 抽奖结果</div>
-                                <div class="info-value lottery">
-                                    <span class="emoji">{lottery_icon}</span>
-                                    <span class="lottery">{lottery_result}</span>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="footer">
-                            <p>🤖 自动签到系统 | 掘金社区</p>
-                            <p>此邮件由系统自动发送，请勿回复</p>
-                        </div>
+        <div class="container">
+            <div class="header">
+                <h1>🎯 掘金签到通知</h1>
+            </div>
+            <div class="content">
+                <div class="info-item">
+                    <div class="info-label">📅 执行时间</div>
+                    <div class="info-value">{current_time}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">✍️ 签到状态</div>
+                    <div class="info-value success">
+                        <span class="emoji">{sign_icon}</span>
+                        <span class="success">{sign_status}</span>
                     </div>
-                </td>
-            </tr>
-        </table>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">🎲 抽奖结果</div>
+                    <div class="info-value lottery">
+                        <span class="emoji">{lottery_icon}</span>
+                        <span class="lottery">{lottery_result}</span>
+                    </div>
+                </div>
+            </div>
+            <div class="footer">
+                <p>🤖 自动签到系统 | 掘金社区</p>
+                <p>此邮件由系统自动发送，请勿回复</p>
+            </div>
+        </div>
     </body>
     </html>
     """
