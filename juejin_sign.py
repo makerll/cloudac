@@ -97,9 +97,18 @@ def visit_juejin_home():
     访问掘金首页，模拟真实用户行为
     """
     try:
+        # 检查Cookie是否为空
+        if not COOKIE:
+            print("错误：Cookie为空，请检查配置")
+            return False
+        
         headers = get_random_headers()
         time.sleep(random.uniform(0.5, 2))
         response = requests.get(JUEJIN_HOME_URL, headers=headers, verify=False, timeout=10)
+        
+        # 打印响应状态（用于调试）
+        print(f"访问掘金首页状态码: {response.status_code}")
+        
         if response.status_code == 200:
             print("成功访问掘金首页")
             return True
@@ -114,11 +123,21 @@ def get_today_status():
     获取今天是否已签到
     """
     try:
+        # 检查Cookie是否为空
+        if not COOKIE:
+            print("错误：Cookie为空，请检查配置")
+            return False
+        
         # 使用随机请求头
         headers = get_random_headers()
         # 添加随机延迟
         time.sleep(random.uniform(0.5, 2))
         response = requests.get(GET_STATUS_URL, headers=headers, verify=False, timeout=10)
+        
+        # 打印响应状态和内容（用于调试）
+        print(f"获取签到状态请求状态码: {response.status_code}")
+        print(f"获取签到状态响应内容: {response.text[:200]}...")  # 只打印前200个字符
+        
         if response.status_code == 200:
             try:
                 data = response.json()
@@ -143,11 +162,21 @@ def check_in():
     执行签到操作
     """
     try:
+        # 检查Cookie是否为空
+        if not COOKIE:
+            print("错误：Cookie为空，请检查配置")
+            return False
+        
         # 使用随机请求头
         headers = get_random_headers()
         # 添加随机延迟
         time.sleep(random.uniform(0.5, 2))
         response = requests.post(CHECK_IN_URL, headers=headers, verify=False, timeout=10)
+        
+        # 打印响应状态和内容（用于调试）
+        print(f"签到请求状态码: {response.status_code}")
+        print(f"签到响应内容: {response.text[:200]}...")  # 只打印前200个字符
+        
         if response.status_code == 200:
             try:
                 data = response.json()
@@ -174,9 +203,19 @@ def lottery_draw():
     执行免费抽奖操作
     """
     try:
+        # 检查Cookie是否为空
+        if not COOKIE:
+            print("错误：Cookie为空，请检查配置")
+            return "抽奖失败"
+        
         headers = get_random_headers()
         time.sleep(random.uniform(0.5, 2))
         response = requests.post(LOTTERY_DRAW_URL, headers=headers, verify=False, timeout=10)
+        
+        # 打印响应状态和内容（用于调试）
+        print(f"抽奖请求状态码: {response.status_code}")
+        print(f"抽奖响应内容: {response.text[:200]}...")  # 只打印前200个字符
+        
         if response.status_code == 200:
             try:
                 data = response.json()
