@@ -34,8 +34,7 @@ jobs:
     
     - name: 运行签到脚本
       run: |
-        # 修改脚本以使用环境变量中的Cookie
-        sed -i 's/COOKIE = ""/from cookie_config import COOKIE/' juejin_sign.py
+        # 直接运行脚本，脚本会自动从cookie_config.py导入配置
         python juejin_sign.py
     
     - name: 清理
