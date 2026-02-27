@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-掘金社区自动签到脚本 - 修复抽奖逻辑
+掘金社区自动签到脚本 - 最终版
 """
 import os
 import requests
@@ -26,7 +26,6 @@ EMAIL_PASSWORD = os.environ.get('EMAIL_PASSWORD', '')
 EMAIL_TO = os.environ.get('EMAIL_TO', '')
 SMTP_SERVER = os.environ.get('SMTP_SERVER', 'smtp.163.com')
 
-# SMTP端口
 try:
     SMTP_PORT = int(os.environ.get('SMTP_PORT', '465'))
 except:
@@ -52,7 +51,6 @@ def extract_from_cookie(key):
         return COOKIE[start:end]
     return ''
 
-# 提取重要的cookie值
 def extract_uuid():
     """从__tea_cookie_tokens_2608中提取web_id"""
     tea_token = extract_from_cookie('__tea_cookie_tokens_2608')
@@ -72,15 +70,18 @@ SESSION_ID = extract_from_cookie('sessionid')
 print(f"UUID: {UUID}")
 print(f"CSRF Token: {CSRF_TOKEN[:10] if CSRF_TOKEN else 'None'}...")
 
-# 固定的msToken和a_bogus（从浏览器请求中获取）
-MS_TOKEN = "Jf-QXRRpn2zPi8juqA06vFa3wG46uN94TZUObbtMVTcwHtk7iY-hbM96MYKGe3rfw3rIntxXopovX-qZPjBs8LVmjPxv508aoQNCtOZY47AQeau4kYfG378_JIkxKQQE"
-A_BOGUS = "QXMm6Og2Msm1Y7VU%2F7kz9bmE1F60YWRQgZEPXDBEWzw-"
+# ==================== 从浏览器获取的最新参数 ====================
+# 签到参数（从之前的请求中获取）
+CHECKIN_MS_TOKEN = "Jf-QXRRpn2zPi8juqA06vFa3wG46uN94TZUObbtMVTcwHtk7iY-hbM96MYKGe3rfw3rIntxXopovX-qZPjBs8LVmjPxv508aoQNCtOZY47AQeau4kYfG378_JIkxKQQE"
+CHECKIN_A_BOGUS = "QXMm6Og2Msm1Y7VU%2F7kz9bmE1F60YWRQgZEPXDBEWzw-"
 
-# 随机User-Agent列表
+# 抽奖参数（从你刚提供的请求中获取）
+LOTTERY_MS_TOKEN = "Q0R5r3WP2jlqQ7hXZoZSKzEqqXuLlSrwi4c9WEUOcotFG6HVGyitrf6MU8Phb2q63tP1AHbugVA5vsSMkmJm84T0L8lp_uneYJdq4zulUh6seAvSYYaQpRXUJMGp6IP9"
+LOTTERY_A_BOGUS = "djBmkOg2Msm1t7VUMhkz9cfE1Og0YW4agZEPXDIyDtLT"
+
 USER_AGENTS = [
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36 Edg/145.0.0.0',
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-    'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:121.0) Gecko/20100101 Firefox/121.0',
 ]
 
 def check_config():
@@ -106,7 +107,7 @@ def format_china_time():
     return get_china_time().strftime('%Y-%m-%d %H:%M:%S')
 
 def get_headers():
-    """获取完整的请求头 - 完全模拟浏览器"""
+    """获取完整的请求头"""
     return {
         'Accept': '*/*',
         'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
@@ -126,122 +127,89 @@ def get_headers():
     }
 
 def get_checkin_url():
-    """构建完整的签到URL，包含所有必要参数"""
+    """构建签到URL"""
     return (f"{CHECK_IN_URL}?aid=2608"
             f"&uuid={UUID}"
             f"&spider=0"
-            f"&msToken={MS_TOKEN}"
-            f"&a_bogus={A_BOGUS}")
+            f"&msToken={CHECKIN_MS_TOKEN}"
+            f"&a_bogus={CHECKIN_A_BOGUS}")
 
 def get_lottery_url():
-    """构建完整的抽奖URL"""
+    """构建抽奖URL - 使用抽奖专用的参数"""
     return (f"{LOTTERY_DRAW_URL}?aid=2608"
             f"&uuid={UUID}"
             f"&spider=0"
-            f"&msToken={MS_TOKEN}"
-            f"&a_bogus={A_BOGUS}")
+            f"&msToken={LOTTERY_MS_TOKEN}"
+            f"&a_bogus={LOTTERY_A_BOGUS}")
 
-def visit_juejin_home():
-    """访问首页获取cookies"""
+def make_request(url, method='POST', data=None):
+    """发送请求"""
+    headers = get_headers()
+    
+    print(f"\n请求URL: {url}")
+    print(f"请求方法: {method}")
+    
     try:
-        headers = get_headers()
-        response = requests.get(JUEJIN_HOME_URL, headers=headers, verify=False, timeout=10)
-        print(f"首页状态码: {response.status_code}")
-        time.sleep(random.uniform(1, 2))
-        return True
+        if method.upper() == 'GET':
+            response = requests.get(url, headers=headers, verify=False, timeout=10)
+        else:
+            response = requests.post(url, headers=headers, json=data or {}, verify=False, timeout=10)
+        
+        print(f"状态码: {response.status_code}")
+        
+        if response.status_code == 200 and response.text:
+            try:
+                result = response.json()
+                print(f"响应内容: {json.dumps(result, ensure_ascii=False)[:200]}")
+                return result
+            except:
+                print(f"响应内容: '{response.text[:200]}'")
+                return None
+        else:
+            print(f"响应为空或状态码错误")
+            return None
+            
     except Exception as e:
-        print(f"首页访问失败: {e}")
-        return False
+        print(f"请求异常: {e}")
+        return None
 
 def get_today_status():
     """获取今天是否已签到"""
-    try:
-        headers = get_headers()
-        response = requests.get(GET_STATUS_URL, headers=headers, verify=False, timeout=10)
-        
-        if response.status_code == 200 and response.text:
-            data = response.json()
-            if data.get('err_no') == 0:
-                return data.get('data', False)
-        return False
-    except Exception as e:
-        print(f"获取状态异常: {e}")
-        return False
+    result = make_request(GET_STATUS_URL, 'GET')
+    if result and result.get('err_no') == 0:
+        return result.get('data', False)
+    return False
 
 def check_in():
     """执行签到"""
-    try:
-        url = get_checkin_url()
-        headers = get_headers()
-        
-        print(f"签到URL: {url}")
-        
-        response = requests.post(
-            url,
-            headers=headers,
-            json={},
-            verify=False,
-            timeout=10
-        )
-        
-        print(f"签到状态码: {response.status_code}")
-        
-        if response.status_code == 200 and response.text:
-            data = response.json()
-            if data.get('err_no') == 0:
-                incr_point = data.get('data', {}).get('incr_point', 0)
-                total_point = data.get('data', {}).get('total_point', 0)
-                print(f"✅ 签到成功！获得矿石: {incr_point}, 当前矿石: {total_point}")
-                return True, f"获得{incr_point}矿石，当前总{total_point}矿石"
-            else:
-                error_msg = data.get('err_msg', '未知错误')
-                print(f"❌ 签到失败: {error_msg}")
-                return False, error_msg
-        else:
-            print(f"❌ 签到失败 - 空响应")
-            return False, "服务器返回空响应"
-            
-    except Exception as e:
-        print(f"签到异常: {e}")
-        return False, str(e)
+    url = get_checkin_url()
+    result = make_request(url, 'POST', {})
+    
+    if result and result.get('err_no') == 0:
+        data = result.get('data', {})
+        incr_point = data.get('incr_point', 0)
+        total_point = data.get('total_point', 0)
+        return True, f"获得{incr_point}矿石，当前总{total_point}矿石"
+    else:
+        error_msg = result.get('err_msg', '未知错误') if result else '请求失败'
+        return False, error_msg
 
 def lottery_draw():
-    """执行免费抽奖"""
-    try:
-        url = get_lottery_url()
-        headers = get_headers()
-        
-        print(f"抽奖URL: {url}")
-        
-        response = requests.post(
-            url,
-            headers=headers,
-            json={},
-            verify=False,
-            timeout=10
-        )
-        
-        print(f"抽奖状态码: {response.status_code}")
-        
-        if response.status_code == 200 and response.text:
-            data = response.json()
-            if data.get('err_no') == 0:
-                lottery_data = data.get('data', {})
-                lottery_name = lottery_data.get('lottery_name', '未知奖品')
-                print(f"🎉 抽奖成功！获得: {lottery_name}")
-                return lottery_name
-            else:
-                error_msg = data.get('err_msg', '未知错误')
-                print(f"抽奖结果: {error_msg}")
-                if '今天已经抽过奖' in error_msg:
-                    return "今天已经抽过奖"
-                return f"抽奖失败: {error_msg}"
-        else:
-            print(f"抽奖失败 - 空响应")
-            return "抽奖失败"
-    except Exception as e:
-        print(f"抽奖异常: {e}")
-        return f"抽奖异常: {str(e)}"
+    """执行免费抽奖 - 使用抽奖专用参数"""
+    url = get_lottery_url()
+    result = make_request(url, 'POST', {})
+    
+    if result and result.get('err_no') == 0:
+        lottery_data = result.get('data', {})
+        lottery_name = lottery_data.get('lottery_name', '未知奖品')
+        print(f"🎉 抽奖成功！获得: {lottery_name}")
+        return lottery_name
+    else:
+        error_msg = result.get('err_msg', '抽奖失败') if result else '请求失败'
+        print(f"抽奖结果: {error_msg}")
+        if '今天已经抽过奖' in error_msg:
+            return "今天已经抽过奖"
+        return f"抽奖失败: {error_msg}"
 
 def send_email(subject, content, is_html=False):
     """发送邮件"""
@@ -285,7 +253,7 @@ def create_email_html(sign_status, sign_detail, lottery_result):
     if "已经抽过" in lottery_result:
         lottery_icon = "⏰"
         lottery_color = "#faad14"
-    elif "失败" in lottery_result or "异常" in lottery_result:
+    elif "失败" in lottery_result:
         lottery_icon = "❌"
         lottery_color = "#ff4d4f"
     else:
@@ -299,21 +267,20 @@ def create_email_html(sign_status, sign_detail, lottery_result):
         <meta charset="utf-8">
         <style>
             body {{
-                font-family: 'Microsoft YaHei', -apple-system, BlinkMacSystemFont, sans-serif;
+                font-family: 'Microsoft YaHei', sans-serif;
                 padding: 20px;
                 background-color: #f5f5f5;
-                margin: 0;
             }}
             .container {{
                 max-width: 500px;
                 margin: 0 auto;
-                background: #ffffff;
+                background: #fff;
                 border-radius: 12px;
                 box-shadow: 0 4px 12px rgba(0,0,0,0.1);
                 overflow: hidden;
             }}
             .header {{
-                background: linear-gradient(135deg, #1E80FF 0%, #0066FF 100%);
+                background: linear-gradient(135deg, #1E80FF, #0066FF);
                 color: white;
                 padding: 24px;
                 text-align: center;
@@ -321,28 +288,23 @@ def create_email_html(sign_status, sign_detail, lottery_result):
             .header h1 {{
                 margin: 0;
                 font-size: 22px;
-                font-weight: 600;
-                letter-spacing: 1px;
             }}
             .content {{
                 padding: 24px;
             }}
-            .info-card {{
+            .card {{
                 background: #f8f9fa;
                 border-radius: 8px;
                 padding: 16px;
                 margin-bottom: 16px;
                 border-left: 4px solid #1E80FF;
             }}
-            .info-label {{
+            .label {{
                 color: #6c757d;
                 font-size: 13px;
                 margin-bottom: 8px;
-                display: flex;
-                align-items: center;
-                gap: 4px;
             }}
-            .info-value {{
+            .value {{
                 font-size: 16px;
                 color: #212529;
                 font-weight: 500;
@@ -351,19 +313,13 @@ def create_email_html(sign_status, sign_detail, lottery_result):
                 color: {sign_color};
                 font-size: 18px;
                 font-weight: 600;
-                display: flex;
-                align-items: center;
-                gap: 8px;
             }}
             .lottery-status {{
                 color: {lottery_color};
                 font-size: 16px;
                 font-weight: 500;
-                display: flex;
-                align-items: center;
-                gap: 8px;
             }}
-            .detail-text {{
+            .detail {{
                 font-size: 14px;
                 color: #6c757d;
                 margin-top: 8px;
@@ -378,9 +334,6 @@ def create_email_html(sign_status, sign_detail, lottery_result):
                 font-size: 12px;
                 border-top: 1px solid #dee2e6;
             }}
-            .emoji {{
-                font-size: 20px;
-            }}
         </style>
     </head>
     <body>
@@ -389,31 +342,24 @@ def create_email_html(sign_status, sign_detail, lottery_result):
                 <h1>🎯 掘金自动签到</h1>
             </div>
             <div class="content">
-                <div class="info-card">
-                    <div class="info-label">📅 执行时间</div>
-                    <div class="info-value">{current_time}</div>
+                <div class="card">
+                    <div class="label">📅 执行时间</div>
+                    <div class="value">{current_time}</div>
                 </div>
                 
-                <div class="info-card">
-                    <div class="info-label">✍️ 签到状态</div>
-                    <div class="sign-status">
-                        <span class="emoji">{sign_icon}</span>
-                        <span>{sign_status}</span>
-                    </div>
-                    <div class="detail-text">{sign_detail}</div>
+                <div class="card">
+                    <div class="label">✍️ 签到状态</div>
+                    <div class="sign-status">{sign_icon} {sign_status}</div>
+                    <div class="detail">{sign_detail}</div>
                 </div>
                 
-                <div class="info-card">
-                    <div class="info-label">🎲 抽奖结果</div>
-                    <div class="lottery-status">
-                        <span class="emoji">{lottery_icon}</span>
-                        <span>{lottery_result}</span>
-                    </div>
+                <div class="card">
+                    <div class="label">🎲 抽奖结果</div>
+                    <div class="lottery-status">{lottery_icon} {lottery_result}</div>
                 </div>
             </div>
             <div class="footer">
                 <p>🤖 自动签到系统 | 掘金社区</p>
-                <p style="margin: 5px 0 0; font-size: 11px;">此邮件由系统自动发送</p>
             </div>
         </div>
     </body>
@@ -433,30 +379,25 @@ def main():
     print(f"随机延迟 {delay} 秒")
     time.sleep(delay)
     
-    # 访问首页
-    visit_juejin_home()
-    
     # 获取状态
     is_signed = get_today_status()
     print(f"今日签到状态: {'已签到' if is_signed else '未签到'}")
     
     # 无论签到状态如何，都执行抽奖
+    print("\n开始执行抽奖...")
     lottery_result = lottery_draw()
     
     if is_signed:
-        # 已签到，直接抽奖
         sign_status = "已签到"
         sign_detail = "今天已经签到过了"
-        print("今天已签到，执行抽奖")
     else:
-        # 未签到，先签到再抽奖
-        print("开始执行签到...")
+        print("\n开始执行签到...")
         sign_success, sign_detail = check_in()
         sign_status = "签到成功" if sign_success else "签到失败"
         
-        # 如果签到成功，再抽一次奖（因为签到后会有一次免费抽奖）
+        # 如果签到成功，再抽一次奖
         if sign_success:
-            print("签到成功，继续抽奖...")
+            print("\n签到成功，再次抽奖...")
             time.sleep(random.uniform(1, 2))
             lottery_result = lottery_draw()
     
