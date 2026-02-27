@@ -23,7 +23,14 @@ EMAIL_FROM = os.environ.get('EMAIL_FROM', '')
 EMAIL_PASSWORD = os.environ.get('EMAIL_PASSWORD', '')
 EMAIL_TO = os.environ.get('EMAIL_TO', EMAIL_FROM)  # 默认发送到发件箱
 SMTP_SERVER = os.environ.get('SMTP_SERVER', 'smtp.163.com')
-SMTP_PORT = int(os.environ.get('SMTP_PORT', 465))
+
+# 处理SMTP_PORT，确保它能正确转换为整数
+SMTP_PORT_STR = os.environ.get('SMTP_PORT', '465')
+try:
+    SMTP_PORT = int(SMTP_PORT_STR) if SMTP_PORT_STR else 465
+except ValueError:
+    print(f"警告: SMTP_PORT 值 '{SMTP_PORT_STR}' 无效，使用默认值 465")
+    SMTP_PORT = 465
 
 # API配置
 BASE_URL = "https://api.juejin.cn/growth_api/v1/"
@@ -84,7 +91,6 @@ def get_random_headers():
         'Sec-Fetch-Site': 'same-site'
     }
     
-    # 可以在这里动态获取CSRF token，但为了简化，先不加
     return headers
 
 # 获取中国时区时间
@@ -393,6 +399,7 @@ def main():
     主函数
     """
     print(f"[{format_china_time()}] 开始执行掘金签到")
+    print(f"SMTP_PORT 当前值: {SMTP_PORT}")  # 调试信息
     
     # 检查配置
     if not check_config():
