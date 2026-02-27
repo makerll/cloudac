@@ -27,10 +27,10 @@ jobs:
     
     - name: 配置Cookie和邮件
       run: |
-        # 将环境变量写入配置文件
-        echo "COOKIE = '${{ secrets.JUEJIN_COOKIE }}'" > cookie_config.py
-        echo "EMAIL_FROM = '${{ secrets.EMAIL_FROM }}'" >> cookie_config.py
-        echo "EMAIL_PASSWORD = '${{ secrets.EMAIL_PASSWORD }}'" >> cookie_config.py
+        # 将环境变量写入配置文件（使用双引号以支持URL编码的字符）
+        echo "COOKIE = \"${{ secrets.JUEJIN_COOKIE }}\"" > cookie_config.py
+        echo "EMAIL_FROM = \"${{ secrets.EMAIL_FROM }}\"" >> cookie_config.py
+        echo "EMAIL_PASSWORD = \"${{ secrets.EMAIL_PASSWORD }}\"" >> cookie_config.py
     
     - name: 运行签到脚本
       run: |
