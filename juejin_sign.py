@@ -173,11 +173,18 @@ def check_in():
         time.sleep(random.uniform(0.5, 2))
         response = requests.post(CHECK_IN_URL, headers=headers, verify=False, timeout=10)
         
-        # 打印响应状态和内容（用于调试）
+        # 打印响应状态、头部和内容（用于调试）
         print(f"签到请求状态码: {response.status_code}")
-        print(f"签到响应内容: {response.text[:200]}...")  # 只打印前200个字符
+        print(f"响应Content-Length: {response.headers.get('Content-Length', '未知')}")
+        print(f"响应Content-Type: {response.headers.get('Content-Type', '未知')}")
+        print(f"响应完整内容: '{response.text}'")  # 打印完整响应内容
         
         if response.status_code == 200:
+            # 检查响应内容是否为空
+            if not response.text:
+                print("错误：响应内容为空")
+                return False
+            
             try:
                 data = response.json()
                 if data.get('err_no') == 0:
@@ -212,11 +219,18 @@ def lottery_draw():
         time.sleep(random.uniform(0.5, 2))
         response = requests.post(LOTTERY_DRAW_URL, headers=headers, verify=False, timeout=10)
         
-        # 打印响应状态和内容（用于调试）
+        # 打印响应状态、头部和内容（用于调试）
         print(f"抽奖请求状态码: {response.status_code}")
-        print(f"抽奖响应内容: {response.text[:200]}...")  # 只打印前200个字符
+        print(f"响应Content-Length: {response.headers.get('Content-Length', '未知')}")
+        print(f"响应Content-Type: {response.headers.get('Content-Type', '未知')}")
+        print(f"响应完整内容: '{response.text}'")  # 打印完整响应内容
         
         if response.status_code == 200:
+            # 检查响应内容是否为空
+            if not response.text:
+                print("错误：响应内容为空")
+                return "抽奖失败"
+            
             try:
                 data = response.json()
                 if data.get('err_no') == 0:
