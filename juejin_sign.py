@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-掘金社区自动签到脚本
+掘金社区自动签到脚本 - 使用GitHub Secrets版本
 """
+import os
 import requests
 import time
 import random
@@ -15,18 +16,14 @@ from urllib3.exceptions import InsecureRequestWarning
 # 禁用SSL验证警告
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
-# ==================== 配置区域 ====================
-# Cookie配置（直接使用）
-COOKIE = "__tea_cookie_tokens_2608=%257B%2522web_id%2522%253A%25227599900289718863423%2522%252C%2522user_unique_id%2522%253A%25227599900289718863423%2522%252C%2522timestamp%2522%253A1769489691101%257D; passport_csrf_token=a3ea02965f1f21234f48f9652534d256; passport_csrf_token_default=a3ea02965f1f21234f48f9652534d256; n_mh=nM1xhw_Z4qLv3wYKe_o_Lfp-bU-qyPh9U8jfmNE5dWs; sid_guard=86e9e3ba4acaf2c8591f8c1259f22cdb%7C1769489700%7C31536000%7CWed%2C+27-Jan-2027+04%3A55%3A00+GMT; uid_tt=a054b99f6496a17ff35d6b4eafcc7bda; uid_tt_ss=a054b99f6496a17ff35d6b4eafcc7bda; sid_tt=86e9e3ba4acaf2c8591f8c1259f22cdb; sessionid=86e9e3ba4acaf2c8591f8c1259f22cdb; sessionid_ss=86e9e3ba4acaf2c8591f8c1259f22cdb; session_tlb_tag=sttt%7C16%7ChunjukrK8shZH4wSWfIs2__________m7UkD9BpjNy7D0EDmZ6woEp9gmv1KW-h8nuncb_kZYcA%3D; is_staff_user=false; sid_ucp_v1=1.0.0-KDAzMjViY2ZhODFiZGNhNTVjZjIyNzYzNWRmOTJmYTY2Y2Y3Njk3YjUKFwjdxqDA_fWdAxCkiuHLBhiwFDgCQO8HGgJsZiIgODZlOWUzYmE0YWNhZjJjODU5MWY4YzEyNTlmMjJjZGI; ssid_ucp_v1=1.0.0-KDAzMjViY2ZhODFiZGNhNTVjZjIyNzYzNWRmOTJmYTY2Y2Y3Njk3YjUKFwjdxqDA_fWdAxCkiuHLBhiwFDgCQO8HGgJsZiIgODZlOWUzYmE0YWNhZjJjODU5MWY4YzEyNTlmMjJjZGI; _tea_utm_cache_576092=undefined;"
-
-# 邮件配置
-EMAIL_FROM = "maker196@163.com"  # 发件邮箱
-EMAIL_PASSWORD = "RDWkY8YTWGQ7QkYB"  # 邮箱授权码
-
-# 邮件配置
-EMAIL_TO = "maker196@163.com"
-SMTP_SERVER = "smtp.163.com"
-SMTP_PORT = 465
+# ==================== 从环境变量读取配置 ====================
+# GitHub Actions中通过secrets设置的环境变量
+COOKIE = os.environ.get('JUEJIN_COOKIE', '')
+EMAIL_FROM = os.environ.get('EMAIL_FROM', '')
+EMAIL_PASSWORD = os.environ.get('EMAIL_PASSWORD', '')
+EMAIL_TO = os.environ.get('EMAIL_TO', EMAIL_FROM)  # 默认发送到发件箱
+SMTP_SERVER = os.environ.get('SMTP_SERVER', 'smtp.163.com')
+SMTP_PORT = int(os.environ.get('SMTP_PORT', 465))
 
 # API配置
 BASE_URL = "https://api.juejin.cn/growth_api/v1/"
@@ -48,12 +45,30 @@ USER_AGENTS = [
     'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Firefox/121.0'
 ]
 
+def check_config():
+    """检查必要的配置是否都存在"""
+    missing_configs = []
+    
+    if not COOKIE:
+        missing_configs.append('JUEJIN_COOKIE')
+    if not EMAIL_FROM:
+        missing_configs.append('EMAIL_FROM')
+    if not EMAIL_PASSWORD:
+        missing_configs.append('EMAIL_PASSWORD')
+    
+    if missing_configs:
+        print("错误：以下配置缺失，请在GitHub Secrets中设置：")
+        for config in missing_configs:
+            print(f"  - {config}")
+        return False
+    return True
+
 # 获取随机请求头
 def get_random_headers():
     """
     获取随机请求头
     """
-    return {
+    headers = {
         'Accept': 'application/json, text/plain, */*',
         'Accept-Language': 'zh-CN,zh;q=0.9',
         'Content-Type': 'application/json',
@@ -68,12 +83,15 @@ def get_random_headers():
         'Sec-Fetch-Mode': 'cors',
         'Sec-Fetch-Site': 'same-site'
     }
+    
+    # 可以在这里动态获取CSRF token，但为了简化，先不加
+    return headers
+
 # 获取中国时区时间
 def get_china_time():
     """
     获取中国时区（UTC+8）的当前时间
     """
-    # 创建UTC+8时区
     china_tz = timezone(timedelta(hours=8))
     return datetime.now(china_tz)
 
@@ -84,23 +102,15 @@ def format_china_time():
     """
     return get_china_time().strftime('%Y-%m-%d %H:%M:%S')
 
-# ==================== 配置区域结束 ====================
-
 def visit_juejin_home():
     """
     访问掘金首页，模拟真实用户行为
     """
     try:
-        # 检查Cookie是否为空
-        if not COOKIE:
-            print("错误：Cookie为空，请检查配置")
-            return False
-        
         headers = get_random_headers()
         time.sleep(random.uniform(0.5, 2))
         response = requests.get(JUEJIN_HOME_URL, headers=headers, verify=False, timeout=10)
         
-        # 打印响应状态（用于调试）
         print(f"访问掘金首页状态码: {response.status_code}")
         
         if response.status_code == 200:
@@ -117,20 +127,12 @@ def get_today_status():
     获取今天是否已签到
     """
     try:
-        # 检查Cookie是否为空
-        if not COOKIE:
-            print("错误：Cookie为空，请检查配置")
-            return False
-        
-        # 使用随机请求头
         headers = get_random_headers()
-        # 添加随机延迟
         time.sleep(random.uniform(0.5, 2))
         response = requests.get(GET_STATUS_URL, headers=headers, verify=False, timeout=10)
         
-        # 打印响应状态和内容（用于调试）
         print(f"获取签到状态请求状态码: {response.status_code}")
-        print(f"获取签到状态响应内容: {response.text[:200]}...")  # 只打印前200个字符
+        print(f"获取签到状态响应内容: {response.text[:200]}...")
         
         if response.status_code == 200:
             try:
@@ -140,11 +142,8 @@ def get_today_status():
                 else:
                     error_msg = data.get('err_msg', '未知错误')
                     print(f"获取签到状态失败: {error_msg}")
-                    if 'login' in error_msg.lower():
-                        print("提示：请检查Cookie是否有效，可能已过期或格式错误")
             except ValueError as e:
                 print(f"获取签到状态响应解析失败: {str(e)}")
-                print("提示：可能是网络问题或API变更，请稍后重试")
         else:
             print(f"获取签到状态请求失败: {response.status_code}")
     except Exception as e:
@@ -156,25 +155,16 @@ def check_in():
     执行签到操作
     """
     try:
-        # 检查Cookie是否为空
-        if not COOKIE:
-            print("错误：Cookie为空，请检查配置")
-            return False
-        
-        # 使用随机请求头
         headers = get_random_headers()
-        # 添加随机延迟
         time.sleep(random.uniform(0.5, 2))
         response = requests.post(CHECK_IN_URL, headers=headers, verify=False, timeout=10)
         
-        # 打印响应状态、头部和内容（用于调试）
         print(f"签到请求状态码: {response.status_code}")
         print(f"响应Content-Length: {response.headers.get('Content-Length', '未知')}")
         print(f"响应Content-Type: {response.headers.get('Content-Type', '未知')}")
-        print(f"响应完整内容: '{response.text}'")  # 打印完整响应内容
+        print(f"响应完整内容: '{response.text}'")
         
         if response.status_code == 200:
-            # 检查响应内容是否为空
             if not response.text:
                 print("错误：响应内容为空")
                 return False
@@ -188,11 +178,8 @@ def check_in():
                 else:
                     error_msg = data.get('err_msg', '未知错误')
                     print(f"签到失败: {error_msg}")
-                    if 'login' in error_msg.lower():
-                        print("提示：请检查Cookie是否有效，可能已过期或格式错误")
             except ValueError as e:
                 print(f"签到响应解析失败: {str(e)}")
-                print("提示：可能是网络问题或API变更，请稍后重试")
         else:
             print(f"签到请求失败: {response.status_code}")
     except Exception as e:
@@ -204,23 +191,16 @@ def lottery_draw():
     执行免费抽奖操作
     """
     try:
-        # 检查Cookie是否为空
-        if not COOKIE:
-            print("错误：Cookie为空，请检查配置")
-            return "抽奖失败"
-        
         headers = get_random_headers()
         time.sleep(random.uniform(0.5, 2))
         response = requests.post(LOTTERY_DRAW_URL, headers=headers, verify=False, timeout=10)
         
-        # 打印响应状态、头部和内容（用于调试）
         print(f"抽奖请求状态码: {response.status_code}")
         print(f"响应Content-Length: {response.headers.get('Content-Length', '未知')}")
         print(f"响应Content-Type: {response.headers.get('Content-Type', '未知')}")
-        print(f"响应完整内容: '{response.text}'")  # 打印完整响应内容
+        print(f"响应完整内容: '{response.text}'")
         
         if response.status_code == 200:
-            # 检查响应内容是否为空
             if not response.text:
                 print("错误：响应内容为空")
                 return "抽奖失败"
@@ -236,17 +216,14 @@ def lottery_draw():
                     error_msg = data.get('err_msg', '未知错误')
                     print(f"抽奖失败: {error_msg}")
                     if '今天已经抽过奖' in error_msg or 'already' in error_msg.lower():
-                        print("提示：今天已经抽过奖了，无需重复抽奖")
                         return "今天已经抽过奖"
             except ValueError as e:
                 print(f"抽奖响应解析失败: {str(e)}")
-                print("提示：可能今天已经抽过奖了")
-                return "今天已经抽过奖"
+                return "抽奖失败"
         else:
             print(f"抽奖请求失败: {response.status_code}")
     except Exception as e:
         print(f"抽奖异常: {str(e)}")
-        print("提示：可能今天已经抽过奖了")
     return "抽奖失败"
 
 def create_email_html(sign_status, lottery_result):
@@ -387,11 +364,8 @@ def send_email(subject, content, is_html=False):
     发送邮件通知
     """
     try:
-        if not EMAIL_FROM:
-            print("邮件配置不完整：未设置发件邮箱，跳过邮件发送")
-            return False
-        if not EMAIL_PASSWORD:
-            print("邮件配置不完整：未设置邮箱密码/授权码，跳过邮件发送")
+        if not EMAIL_FROM or not EMAIL_PASSWORD:
+            print("邮件配置不完整，跳过邮件发送")
             return False
         
         msg = MIMEMultipart()
@@ -412,7 +386,6 @@ def send_email(subject, content, is_html=False):
         return True
     except Exception as e:
         print(f"邮件发送失败: {str(e)}")
-        print("提示：邮件发送失败不会影响签到和抽奖功能")
         return False
 
 def main():
@@ -420,6 +393,11 @@ def main():
     主函数
     """
     print(f"[{format_china_time()}] 开始执行掘金签到")
+    
+    # 检查配置
+    if not check_config():
+        print("配置检查失败，退出程序")
+        return
     
     # 添加随机延迟（1-300秒），模拟真实用户行为
     random_delay = random.randint(1, 300)
