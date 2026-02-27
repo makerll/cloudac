@@ -25,19 +25,7 @@ jobs:
         python -m pip install --upgrade pip
         pip install requests
     
-    - name: 配置Cookie和邮件
-      run: |
-        # 将环境变量写入配置文件（使用双引号以支持URL编码的字符）
-        echo "COOKIE = \"${{ secrets.JUEJIN_COOKIE }}\"" > cookie_config.py
-        echo "EMAIL_FROM = \"${{ secrets.EMAIL_FROM }}\"" >> cookie_config.py
-        echo "EMAIL_PASSWORD = \"${{ secrets.EMAIL_PASSWORD }}\"" >> cookie_config.py
-    
     - name: 运行签到脚本
       run: |
-        # 直接运行脚本，脚本会自动从cookie_config.py导入配置
+        # 直接运行脚本，使用硬编码的配置
         python juejin_sign.py
-    
-    - name: 清理
-      if: always()
-      run: |
-        rm -f cookie_config.py
