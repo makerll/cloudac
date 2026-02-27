@@ -2,10 +2,8 @@ name: 掘金自动签到
 
 on:
   schedule:
-    # 每天早上8点到9点之间运行（中国时间）
-    # 转换为UTC时间是0点到1点
-    - cron: '0-59 0 * * *'  # 每天UTC时间0点的任意分钟运行，对应中国时间8点到9点
-  workflow_dispatch:  # 手动触发
+    - cron: '0-59 0 * * *'  # 每天UTC时间0点，对应中国时间8点
+  workflow_dispatch:
 
 jobs:
   sign:
@@ -28,12 +26,14 @@ jobs:
     
     - name: 运行签到脚本
       env:
-        # 从GitHub Secrets读取配置
+        # 必需配置 - 这些必须在Secrets中设置
         JUEJIN_COOKIE: ${{ secrets.JUEJIN_COOKIE }}
         EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
         EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
-        EMAIL_TO: ${{ secrets.EMAIL_TO }}
-        SMTP_SERVER: ${{ secrets.SMTP_SERVER }}
-        SMTP_PORT: ${{ secrets.SMTP_PORT }}
+        
+        # 可选配置 - 如果不设置，脚本会使用默认值
+        EMAIL_TO: ${{ secrets.EMAIL_TO }}  # 可选，默认同EMAIL_FROM
+        SMTP_SERVER: ${{ secrets.SMTP_SERVER }}  # 可选，默认smtp.163.com
+        SMTP_PORT: ${{ secrets.SMTP_PORT }}  # 可选，默认465
       run: |
         python juejin_sign.py
