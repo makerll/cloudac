@@ -13,7 +13,8 @@ jobs:
     timeout-minutes: 10
     
     steps:
-    - uses: actions/checkout@v3
+    - name: 检出代码
+      uses: actions/checkout@v3
     
     - name: 设置Python环境
       uses: actions/setup-python@v4
@@ -26,6 +27,13 @@ jobs:
         pip install requests
     
     - name: 运行签到脚本
+      env:
+        # 从GitHub Secrets读取配置
+        JUEJIN_COOKIE: ${{ secrets.JUEJIN_COOKIE }}
+        EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+        EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
+        EMAIL_TO: ${{ secrets.EMAIL_TO }}
+        SMTP_SERVER: ${{ secrets.SMTP_SERVER }}
+        SMTP_PORT: ${{ secrets.SMTP_PORT }}
       run: |
-        # 直接运行脚本，使用硬编码的配置
         python juejin_sign.py
