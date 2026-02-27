@@ -118,14 +118,18 @@ def get_today_status():
         time.sleep(random.uniform(0.5, 2))
         response = requests.get(GET_STATUS_URL, headers=headers, verify=False, timeout=10)
         if response.status_code == 200:
-            data = response.json()
-            if data.get('err_no') == 0:
-                return data.get('data', False)
-            else:
-                error_msg = data.get('err_msg', '未知错误')
-                print(f"获取签到状态失败: {error_msg}")
-                if 'login' in error_msg.lower():
-                    print("提示：请检查Cookie是否有效，可能已过期或格式错误")
+            try:
+                data = response.json()
+                if data.get('err_no') == 0:
+                    return data.get('data', False)
+                else:
+                    error_msg = data.get('err_msg', '未知错误')
+                    print(f"获取签到状态失败: {error_msg}")
+                    if 'login' in error_msg.lower():
+                        print("提示：请检查Cookie是否有效，可能已过期或格式错误")
+            except ValueError as e:
+                print(f"获取签到状态响应解析失败: {str(e)}")
+                print("提示：可能是网络问题或API变更，请稍后重试")
         else:
             print(f"获取签到状态请求失败: {response.status_code}")
     except Exception as e:
@@ -143,13 +147,20 @@ def check_in():
         time.sleep(random.uniform(0.5, 2))
         response = requests.post(CHECK_IN_URL, headers=headers, verify=False, timeout=10)
         if response.status_code == 200:
-            data = response.json()
-            if data.get('err_no') == 0:
-                print(f"签到成功！获得矿石: {data.get('data', {}).get('incr_point', 0)}")
-                print(f"当前矿石: {data.get('data', {}).get('total_point', 0)}")
-                return True
-            else:
-                print(f"签到失败: {data.get('err_msg')}")
+            try:
+                data = response.json()
+                if data.get('err_no') == 0:
+                    print(f"签到成功！获得矿石: {data.get('data', {}).get('incr_point', 0)}")
+                    print(f"当前矿石: {data.get('data', {}).get('total_point', 0)}")
+                    return True
+                else:
+                    error_msg = data.get('err_msg', '未知错误')
+                    print(f"签到失败: {error_msg}")
+                    if 'login' in error_msg.lower():
+                        print("提示：请检查Cookie是否有效，可能已过期或格式错误")
+            except ValueError as e:
+                print(f"签到响应解析失败: {str(e)}")
+                print("提示：可能是网络问题或API变更，请稍后重试")
         else:
             print(f"签到请求失败: {response.status_code}")
     except Exception as e:
