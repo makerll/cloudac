@@ -394,30 +394,37 @@ def send_email(subject, content, is_html=False):
         return False
 
 def create_email_html(sign_status, sign_detail, lottery_result, user_stats):
-    """创建HTML邮件内容"""
+    """创建HTML邮件内容 - 清新优雅紧凑版"""
     current_time = format_china_time()
 
-    # 签到状态图标
-    if "成功" in sign_status or "已签到" in sign_status:
-        sign_icon = "✅"
-        sign_color = "#52c41a"
+    # 签到状态
+    if "成功" in sign_status:
+        sign_badge = "✨ 签到成功"
+        sign_color = "#10b981"  # 翠绿色
+    elif "已签到" in sign_status:
+        sign_badge = "📌 今日已签"
+        sign_color = "#3b82f6"  # 清爽蓝色
     else:
-        sign_icon = "❌"
-        sign_color = "#ff4d4f"
+        sign_badge = "⚠️ 签到异常"
+        sign_color = "#ef4444"  # 红色
 
-    # 抽奖结果图标
+    # 抽奖结果
     if "获得" in lottery_result:
         lottery_icon = "🎁"
-        lottery_color = "#52c41a"
-    elif "已经抽过" in lottery_result:
-        lottery_icon = "⏰"
-        lottery_color = "#faad14"
+        lottery_badge = "恭喜中奖"
+        lottery_color = "#8b5cf6"  # 紫色
     elif "谢谢参与" in lottery_result:
         lottery_icon = "🍀"
-        lottery_color = "#faad14"
+        lottery_badge = "谢谢参与"
+        lottery_color = "#6b7280"  # 灰色
+    elif "已经抽过" in lottery_result:
+        lottery_icon = "⏰"
+        lottery_badge = "今日已抽"
+        lottery_color = "#f59e0b"  # 橙色
     else:
-        lottery_icon = "❌"
-        lottery_color = "#ff4d4f"
+        lottery_icon = "❓"
+        lottery_badge = "抽奖完成"
+        lottery_color = "#6b7280"
 
     html = f"""
     <!DOCTYPE html>
@@ -425,169 +432,324 @@ def create_email_html(sign_status, sign_detail, lottery_result, user_stats):
     <head>
         <meta charset="utf-8">
         <style>
+            * {{
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }}
             body {{
-                font-family: 'Microsoft YaHei', sans-serif;
-                padding: 20px;
-                background-color: #f0f2f5;
-                margin: 0;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', sans-serif;
+                background: linear-gradient(135deg, #f5f7fa 0%, #e4e8f0 100%);
+                min-height: 100vh;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 16px;
             }}
-            .container {{
-                max-width: 520px;
-                margin: 0 auto;
-                background: #ffffff;
-                border-radius: 16px;
-                box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+            .card {{
+                max-width: 480px;
+                width: 100%;
+                background: rgba(255, 255, 255, 0.95);
+                backdrop-filter: blur(10px);
+                border-radius: 32px;
+                box-shadow: 0 20px 40px -12px rgba(0, 20, 40, 0.25);
                 overflow: hidden;
+                transition: transform 0.2s;
             }}
+            .card:hover {{
+                transform: translateY(-2px);
+            }}
+            
+            /* 头部 */
             .header {{
-                background: linear-gradient(135deg, #1E80FF, #0052CC);
-                color: white;
-                padding: 24px;
-                text-align: center;
+                padding: 24px 24px 16px;
+                background: linear-gradient(112deg, #ffffff 0%, #f9fafc 100%);
+                border-bottom: 1px solid rgba(0, 0, 0, 0.03);
             }}
-            .header h1 {{
-                margin: 0;
-                font-size: 24px;
+            .title-row {{
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                margin-bottom: 8px;
+            }}
+            .title {{
+                font-size: 20px;
                 font-weight: 600;
+                background: linear-gradient(135deg, #1e293b, #0f172a);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+                letter-spacing: -0.3px;
             }}
-            .content {{
-                padding: 24px;
+            .date-badge {{
+                font-size: 13px;
+                color: #64748b;
+                background: #f1f5f9;
+                padding: 4px 10px;
+                border-radius: 40px;
+                font-weight: 500;
             }}
+            .sub-title {{
+                font-size: 13px;
+                color: #64748b;
+                display: flex;
+                align-items: center;
+                gap: 6px;
+            }}
+            .dot {{
+                width: 4px;
+                height: 4px;
+                background: #cbd5e1;
+                border-radius: 50%;
+            }}
+            
+            /* 统计卡片网格 */
             .stats-grid {{
                 display: grid;
                 grid-template-columns: repeat(2, 1fr);
                 gap: 12px;
-                margin-bottom: 20px;
+                padding: 20px 24px;
+                background: #ffffff;
             }}
-            .stat-card {{
-                background: linear-gradient(135deg, #667eea, #764ba2);
-                color: white;
-                padding: 16px;
-                border-radius: 12px;
-                text-align: center;
+            .stat-item {{
+                background: #f8fafc;
+                border-radius: 20px;
+                padding: 14px 12px;
+                border: 1px solid #f1f5f9;
+                transition: all 0.2s;
             }}
-            .stat-card:nth-child(1) {{ background: linear-gradient(135deg, #667eea, #764ba2); }}
-            .stat-card:nth-child(2) {{ background: linear-gradient(135deg, #f093fb, #f5576c); }}
-            .stat-card:nth-child(3) {{ background: linear-gradient(135deg, #4facfe, #00f2fe); }}
-            .stat-card:nth-child(4) {{ background: linear-gradient(135deg, #43e97b, #38f9d7); }}
-            
+            .stat-item:hover {{
+                border-color: #cbd5e1;
+                background: #ffffff;
+            }}
             .stat-label {{
-                font-size: 13px;
-                opacity: 0.9;
-                margin-bottom: 8px;
+                font-size: 12px;
+                color: #64748b;
+                margin-bottom: 6px;
+                display: flex;
+                align-items: center;
+                gap: 4px;
             }}
             .stat-value {{
-                font-size: 24px;
-                font-weight: bold;
+                font-size: 22px;
+                font-weight: 600;
+                color: #0f172a;
+                line-height: 1.2;
             }}
             .stat-unit {{
                 font-size: 12px;
-                opacity: 0.8;
+                font-weight: 400;
+                color: #94a3b8;
                 margin-left: 2px;
             }}
-            .card {{
-                background: #f8f9fa;
-                border-radius: 12px;
-                padding: 16px;
-                margin-bottom: 16px;
+            
+            /* 内容区域 */
+            .content {{
+                padding: 8px 24px 24px;
             }}
-            .label {{
-                color: #6c757d;
+            
+            /* 状态卡片 */
+            .status-card {{
+                background: #ffffff;
+                border-radius: 24px;
+                padding: 18px;
+                margin-bottom: 12px;
+                border: 1px solid #f1f5f9;
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+            }}
+            .status-header {{
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                margin-bottom: 8px;
+            }}
+            .status-title {{
                 font-size: 13px;
-                margin-bottom: 8px;
-            }}
-            .value {{
-                font-size: 16px;
-                color: #212529;
-            }}
-            .sign-status {{
-                color: {sign_color};
-                font-size: 20px;
-                font-weight: 600;
-                display: flex;
-                align-items: center;
-                gap: 8px;
-                margin-bottom: 8px;
-            }}
-            .lottery-status {{
-                color: {lottery_color};
-                font-size: 18px;
                 font-weight: 500;
+                color: #64748b;
+                letter-spacing: 0.3px;
+            }}
+            .status-badge {{
+                font-size: 12px;
+                padding: 4px 10px;
+                border-radius: 30px;
+                background: #f1f5f9;
+                color: #475569;
+            }}
+            .status-main {{
                 display: flex;
                 align-items: center;
-                gap: 8px;
+                gap: 12px;
             }}
-            .detail {{
-                font-size: 14px;
-                color: #6c757d;
-                margin-top: 8px;
-                padding-top: 8px;
-                border-top: 1px dashed #dee2e6;
+            .status-icon {{
+                width: 40px;
+                height: 40px;
+                background: {sign_color}10;
+                border-radius: 30px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 22px;
             }}
-            .footer {{
-                background: #f8f9fa;
-                padding: 16px;
-                text-align: center;
-                color: #6c757d;
+            .status-info {{
+                flex: 1;
+            }}
+            .status-line {{
+                font-weight: 600;
+                font-size: 16px;
+                color: {sign_color};
+                margin-bottom: 4px;
+            }}
+            .status-desc {{
+                font-size: 13px;
+                color: #64748b;
+            }}
+            
+            /* 抽奖卡片 */
+            .lottery-card {{
+                background: linear-gradient(105deg, {lottery_color}05, #ffffff);
+                border-radius: 24px;
+                padding: 18px;
+                border: 1px solid {lottery_color}20;
+            }}
+            .lottery-header {{
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                margin-bottom: 12px;
+            }}
+            .lottery-title {{
+                font-size: 13px;
+                font-weight: 500;
+                color: #64748b;
+            }}
+            .lottery-badge {{
                 font-size: 12px;
-                border-top: 1px solid #e9ecef;
+                padding: 4px 10px;
+                border-radius: 30px;
+                background: {lottery_color}10;
+                color: {lottery_color};
+                font-weight: 500;
             }}
-            .emoji {{ font-size: 24px; }}
+            .lottery-content {{
+                display: flex;
+                align-items: center;
+                gap: 14px;
+            }}
+            .lottery-icon {{
+                width: 44px;
+                height: 44px;
+                background: {lottery_color}15;
+                border-radius: 24px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 26px;
+            }}
+            .lottery-info {{
+                flex: 1;
+            }}
+            .lottery-result {{
+                font-weight: 600;
+                font-size: 18px;
+                color: {lottery_color};
+                margin-bottom: 2px;
+            }}
+            .lottery-note {{
+                font-size: 12px;
+                color: #94a3b8;
+            }}
+            
+            /* 底部 */
+            .footer {{
+                padding: 16px 24px 20px;
+                text-align: center;
+                border-top: 1px solid #f1f5f9;
+                background: #ffffff;
+            }}
+            .footer-text {{
+                font-size: 12px;
+                color: #94a3b8;
+                line-height: 1.6;
+            }}
+            .footer-icon {{
+                margin: 0 4px;
+                color: #cbd5e1;
+            }}
         </style>
     </head>
     <body>
-        <div class="container">
+        <div class="card">
+            <!-- 头部 -->
             <div class="header">
-                <h1>⛏️ 掘金自动签到</h1>
+                <div class="title-row">
+                    <span class="title">⛏️ 掘金签到</span>
+                    <span class="date-badge">{current_time[5:10]} {current_time[11:16]}</span>
+                </div>
+                <div class="sub-title">
+                    <span>每日自动签到</span>
+                    <span class="dot"></span>
+                    <span>免费抽奖1次</span>
+                </div>
             </div>
+            
+            <!-- 统计卡片网格 - 紧凑设计 -->
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="stat-label">📅 连续</div>
+                    <div class="stat-value">{user_stats['连续签到']}<span class="stat-unit">天</span></div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">📊 累计</div>
+                    <div class="stat-value">{user_stats['累计签到']}<span class="stat-unit">天</span></div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">💎 矿石</div>
+                    <div class="stat-value">{user_stats['矿石总数']}<span class="stat-unit">个</span></div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">✨ 今日</div>
+                    <div class="stat-value">{user_stats['今日获得']}<span class="stat-unit">矿石</span></div>
+                </div>
+            </div>
+            
+            <!-- 内容区域 -->
             <div class="content">
-                <!-- 统计卡片 -->
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-label">连续签到</div>
-                        <div class="stat-value">{user_stats['连续签到']}<span class="stat-unit">天</span></div>
+                <!-- 签到状态卡片 -->
+                <div class="status-card">
+                    <div class="status-header">
+                        <span class="status-title">✍️ 签到状态</span>
+                        <span class="status-badge">{sign_badge}</span>
                     </div>
-                    <div class="stat-card">
-                        <div class="stat-label">累计签到</div>
-                        <div class="stat-value">{user_stats['累计签到']}<span class="stat-unit">天</span></div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-label">矿石总数</div>
-                        <div class="stat-value">{user_stats['矿石总数']}<span class="stat-unit">个</span></div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-label">今日获得</div>
-                        <div class="stat-value">{user_stats['今日获得']}<span class="stat-unit">矿石</span></div>
+                    <div class="status-main">
+                        <div class="status-icon" style="background: {sign_color}10;">{"✅" if "成功" in sign_status or "已签到" in sign_status else "⚠️"}</div>
+                        <div class="status-info">
+                            <div class="status-line">{sign_status}</div>
+                            <div class="status-desc">{sign_detail}</div>
+                        </div>
                     </div>
                 </div>
                 
-                <!-- 时间 -->
-                <div class="card">
-                    <div class="label">📅 执行时间</div>
-                    <div class="value">{current_time}</div>
-                </div>
-                
-                <!-- 签到详情 -->
-                <div class="card">
-                    <div class="label">✍️ 签到详情</div>
-                    <div class="sign-status">
-                        <span class="emoji">{sign_icon}</span>
-                        <span>{sign_status}</span>
+                <!-- 抽奖结果卡片 - 突出显示 -->
+                <div class="lottery-card">
+                    <div class="lottery-header">
+                        <span class="lottery-title">🎲 免费抽奖</span>
+                        <span class="lottery-badge">{lottery_badge}</span>
                     </div>
-                    <div class="detail">{sign_detail}</div>
-                </div>
-                
-                <!-- 抽奖结果 -->
-                <div class="card">
-                    <div class="label">🎲 免费抽奖</div>
-                    <div class="lottery-status">
-                        <span class="emoji">{lottery_icon}</span>
-                        <span>{lottery_result}</span>
+                    <div class="lottery-content">
+                        <div class="lottery-icon" style="background: {lottery_color}15;">{lottery_icon}</div>
+                        <div class="lottery-info">
+                            <div class="lottery-result">{lottery_result}</div>
+                            <div class="lottery-note">今日免费机会已使用</div>
+                        </div>
                     </div>
                 </div>
             </div>
+            
+            <!-- 底部 -->
             <div class="footer">
-                <p>🤖 每天先签到，再抽免费抽奖1次</p>
+                <div class="footer-text">
+                    <span class="footer-icon">⚡</span> 每日自动执行 · 结果实时推送 <span class="footer-icon">⚡</span>
+                </div>
             </div>
         </div>
     </body>
@@ -718,3 +880,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
