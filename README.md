@@ -1,4 +1,4 @@
-# ⛏️ 掘金自动签到 Juejin Auto Sign
+# ⛏️ Juejin Auto Sign
 
 [![GitHub Actions](https://img.shields.io/badge/GitHub-Actions-blue?logo=github-actions)](https://github.com/features/actions)
 [![Python](https://img.shields.io/badge/Python-3.10-green?logo=python)](https://www.python.org/)
