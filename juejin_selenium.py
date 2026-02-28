@@ -706,7 +706,7 @@ def create_email_html(sign_status, sign_detail, lottery_result, user_stats):
             <div class="header">
                 <div class="title-row">
                     <span class="title">⛏️ 掘金签到</span>
-                    <span class="date-badge">{current_time[5:10]} {current_time[11:16]}</span>
+                    <span class="date-badge">{current_time}</span>
                 </div>
                 <div class="sub-title">
                     <span>每日自动签到</span>
@@ -931,3 +931,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
