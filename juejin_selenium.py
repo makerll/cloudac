@@ -321,7 +321,7 @@ def check_lottery_available(driver):
         return False, "检查失败"
 
 def perform_lottery(driver, lottery_element):
-    """执行抽奖并获取奖品信息"""
+    """执行抽奖并获取具体奖品信息（包含矿石数量）"""
     try:
         # 滚动到按钮位置
         driver.execute_script("arguments[0].scrollIntoView(true);", lottery_element)
@@ -339,7 +339,30 @@ def perform_lottery(driver, lottery_element):
         # 获取抽奖结果
         page_text = driver.find_element(By.TAG_NAME, 'body').text
 
-        # 匹配奖品格式
+        # === 新增：优先匹配带数字的矿石 ===
+        # 匹配 "获得: 66矿石" 或 "获得：66矿石" 或 "获得66矿石"
+        ore_match = re.search(r'获得[：:]\s*(\d+)\s*矿石', page_text)
+        if ore_match:
+            ore_count = ore_match.group(1)
+            print(f"🎉 抽中获得 {ore_count} 矿石")
+            return f"获得 {ore_count} 矿石"
+
+        # 匹配 "恭喜XXX抽中66矿石"
+        ore_match2 = re.search(r'抽中[“”]?(\d+)\s*矿石', page_text)
+        if ore_match2:
+            ore_count = ore_match2.group(1)
+            return f"获得 {ore_count} 矿石"
+
+        # 匹配 "随机矿石" 但可能包含数量（如"66矿石"已被上面匹配）
+        if "随机矿石" in page_text and not any(char.isdigit() for char in page_text[page_text.find("随机矿石")-10:page_text.find("随机矿石")]):
+            # 尝试找附近的数字
+            nearby_text = page_text[max(0, page_text.find("随机矿石")-20):page_text.find("随机矿石")+20]
+            num_match = re.search(r'(\d+)', nearby_text)
+            if num_match:
+                return f"获得 {num_match.group(1)} 矿石"
+            return "获得随机矿石"
+
+        # 匹配其他奖品格式（保持不变）
         prize_match = re.search(r'恭喜[^，,\n]+抽中[“”]?([^“”\n]+)[”"]?', page_text)
         if prize_match:
             prize = prize_match.group(1).strip()
@@ -351,7 +374,7 @@ def perform_lottery(driver, lottery_element):
             return f"获得: {prize}"
 
         # 常见奖品关键词
-        common_prizes = ['随机矿石', '盲盒', '小夜灯', '耳机', '兑换券', '唇膏']
+        common_prizes = ['盲盒', '小夜灯', '耳机', '兑换券', '唇膏']
         for prize in common_prizes:
             if prize in page_text:
                 return f"获得: {prize}"
@@ -880,4 +903,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
