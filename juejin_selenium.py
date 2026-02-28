@@ -339,7 +339,7 @@ def perform_lottery(driver, lottery_element):
         # 获取抽奖结果
         page_text = driver.find_element(By.TAG_NAME, 'body').text
 
-        # === 新增：优先匹配带数字的矿石 ===
+        # === 优先匹配带数字的矿石 ===
         # 匹配 "获得: 66矿石" 或 "获得：66矿石" 或 "获得66矿石"
         ore_match = re.search(r'获得[：:]\s*(\d+)\s*矿石', page_text)
         if ore_match:
@@ -353,8 +353,8 @@ def perform_lottery(driver, lottery_element):
             ore_count = ore_match2.group(1)
             return f"获得 {ore_count} 矿石"
 
-        # 匹配 "随机矿石" 但可能包含数量（如"66矿石"已被上面匹配）
-        if "随机矿石" in page_text and not any(char.isdigit() for char in page_text[page_text.find("随机矿石")-10:page_text.find("随机矿石")]):
+        # 匹配 "随机矿石" 但可能包含数量
+        if "随机矿石" in page_text:
             # 尝试找附近的数字
             nearby_text = page_text[max(0, page_text.find("随机矿石")-20):page_text.find("随机矿石")+20]
             num_match = re.search(r'(\d+)', nearby_text)
@@ -362,7 +362,7 @@ def perform_lottery(driver, lottery_element):
                 return f"获得 {num_match.group(1)} 矿石"
             return "获得随机矿石"
 
-        # 匹配其他奖品格式（保持不变）
+        # 匹配其他奖品格式
         prize_match = re.search(r'恭喜[^，,\n]+抽中[“”]?([^“”\n]+)[”"]?', page_text)
         if prize_match:
             prize = prize_match.group(1).strip()
@@ -828,10 +828,20 @@ def main():
             sign_success, sign_reward = perform_sign(driver, sign_button)
 
             if sign_success:
-                # 更新今日获得矿石数
-                reward_numbers = re.findall(r'\d+', sign_reward)
-                if reward_numbers:
-                    user_stats['今日获得'] = reward_numbers[0]
+                # === 更新今日获得矿石数 - 改进版 ===
+                if "获得" in sign_reward:
+                    reward_numbers = re.findall(r'\d+', sign_reward)
+                    if reward_numbers:
+                        user_stats['今日获得'] = reward_numbers[0]
+                        print(f"今日签到获得: {user_stats['今日获得']} 矿石")
+                else:
+                    # 如果没提取到，尝试从页面重新获取
+                    time.sleep(1)
+                    page_text = driver.find_element(By.TAG_NAME, 'body').text
+                    sign_match = re.search(r'签到获得[^\d]*(\d+)[^\d]*矿石', page_text)
+                    if sign_match:
+                        user_stats['今日获得'] = sign_match.group(1)
+                        print(f"今日签到获得(页面提取): {user_stats['今日获得']} 矿石")
 
                 sign_status = "签到成功"
                 sign_detail = sign_reward
@@ -850,6 +860,15 @@ def main():
                 if lottery_available and lottery_element:
                     print("发现免费抽奖机会，开始抽奖...")
                     lottery_result = perform_lottery(driver, lottery_element)
+                    
+                    # === 如果是矿石，累加到今日获得 ===
+                    if "矿石" in lottery_result:
+                        ore_match = re.search(r'(\d+)', lottery_result)
+                        if ore_match:
+                            current_ore = int(user_stats['今日获得'] or 0)
+                            lottery_ore = int(ore_match.group(1))
+                            user_stats['今日获得'] = str(current_ore + lottery_ore)
+                            print(f"今日累计获得矿石: {user_stats['今日获得']} (签到+抽奖)")
                 else:
                     lottery_result = lottery_element if isinstance(lottery_element, str) else "今天已经抽过奖"
                     print(f"抽奖状态: {lottery_result}")
@@ -871,6 +890,15 @@ def main():
             if lottery_available and lottery_element:
                 print("发现免费抽奖机会，开始抽奖...")
                 lottery_result = perform_lottery(driver, lottery_element)
+                
+                # === 如果是矿石，累加到今日获得 ===
+                if "矿石" in lottery_result:
+                    ore_match = re.search(r'(\d+)', lottery_result)
+                    if ore_match:
+                        current_ore = int(user_stats['今日获得'] or 0)
+                        lottery_ore = int(ore_match.group(1))
+                        user_stats['今日获得'] = str(current_ore + lottery_ore)
+                        print(f"今日抽奖获得: {lottery_ore} 矿石，累计: {user_stats['今日获得']}")
             else:
                 lottery_result = lottery_element if isinstance(lottery_element, str) else "今天已经抽过奖"
                 print(f"抽奖状态: {lottery_result}")
@@ -903,5 +931,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
