@@ -2,7 +2,9 @@ name: Juejin Auto Sign - Selenium版
 
 on:
   schedule:
-    - cron: '0 0 * * *'  # 每天UTC时间0点（北京时间8点）
+    # 每天北京时间6点到7点之间随机时间执行
+    # 对应UTC时间是22点到23点
+    - cron: '0 22 * * *'  # 每天UTC时间22:00触发，但在Actions中会排队随机执行
   workflow_dispatch:      # 允许手动触发
 
 jobs:
@@ -14,7 +16,7 @@ jobs:
     - name: 检出代码
       uses: actions/checkout@v3
       with:
-        ref: 'master'  # 明确指定使用Selenium方案分支
+        ref: 'master'
     
     - name: 设置Python环境
       uses: actions/setup-python@v4
