@@ -813,10 +813,10 @@ def main():
         driver.get(USER_PAGE_URL)
         time.sleep(5)
 
-        # 获取用户统计信息
-        print("正在获取用户统计信息...")
-        user_stats = get_user_stats(driver)
-        print(f"用户统计: {user_stats}")
+        # === 获取签到前的初始数据（用于对比） ===
+        print("正在获取签到前用户统计信息...")
+        initial_stats = get_user_stats(driver)
+        print(f"签到前统计: {initial_stats}")
 
         # 检查签到状态
         is_signed, sign_button = check_sign_status(driver)
@@ -828,30 +828,16 @@ def main():
             sign_success, sign_reward = perform_sign(driver, sign_button)
 
             if sign_success:
-                # === 更新今日获得矿石数 - 改进版 ===
+                # 更新今日获得矿石数
                 if "获得" in sign_reward:
                     reward_numbers = re.findall(r'\d+', sign_reward)
                     if reward_numbers:
                         user_stats['今日获得'] = reward_numbers[0]
                         print(f"今日签到获得: {user_stats['今日获得']} 矿石")
-                else:
-                    # 如果没提取到，尝试从页面重新获取
-                    time.sleep(1)
-                    page_text = driver.find_element(By.TAG_NAME, 'body').text
-                    sign_match = re.search(r'签到获得[^\d]*(\d+)[^\d]*矿石', page_text)
-                    if sign_match:
-                        user_stats['今日获得'] = sign_match.group(1)
-                        print(f"今日签到获得(页面提取): {user_stats['今日获得']} 矿石")
 
                 sign_status = "签到成功"
                 sign_detail = sign_reward
                 print(f"✅ {sign_status}: {sign_detail}")
-
-                # 重新获取矿石总数
-                time.sleep(2)
-                updated_stats = get_user_stats(driver)
-                if updated_stats['矿石总数'] != user_stats['矿石总数']:
-                    user_stats['矿石总数'] = updated_stats['矿石总数']
 
                 # 签到成功 → 去抽奖
                 print("\n=== 签到完成，开始执行抽奖 ===")
@@ -861,14 +847,14 @@ def main():
                     print("发现免费抽奖机会，开始抽奖...")
                     lottery_result = perform_lottery(driver, lottery_element)
                     
-                    # === 如果是矿石，累加到今日获得 ===
+                    # 如果是矿石，累加到今日获得
                     if "矿石" in lottery_result:
                         ore_match = re.search(r'(\d+)', lottery_result)
                         if ore_match:
-                            current_ore = int(user_stats['今日获得'] or 0)
                             lottery_ore = int(ore_match.group(1))
+                            current_ore = int(user_stats['今日获得'] or 0)
                             user_stats['今日获得'] = str(current_ore + lottery_ore)
-                            print(f"今日累计获得矿石: {user_stats['今日获得']} (签到+抽奖)")
+                            print(f"今日抽奖获得: {lottery_ore} 矿石，累计: {user_stats['今日获得']}")
                 else:
                     lottery_result = lottery_element if isinstance(lottery_element, str) else "今天已经抽过奖"
                     print(f"抽奖状态: {lottery_result}")
@@ -891,17 +877,30 @@ def main():
                 print("发现免费抽奖机会，开始抽奖...")
                 lottery_result = perform_lottery(driver, lottery_element)
                 
-                # === 如果是矿石，累加到今日获得 ===
+                # 如果是矿石，累加到今日获得
                 if "矿石" in lottery_result:
                     ore_match = re.search(r'(\d+)', lottery_result)
                     if ore_match:
-                        current_ore = int(user_stats['今日获得'] or 0)
                         lottery_ore = int(ore_match.group(1))
-                        user_stats['今日获得'] = str(current_ore + lottery_ore)
-                        print(f"今日抽奖获得: {lottery_ore} 矿石，累计: {user_stats['今日获得']}")
+                        user_stats['今日获得'] = str(lottery_ore)
+                        print(f"今日抽奖获得: {lottery_ore} 矿石")
             else:
                 lottery_result = lottery_element if isinstance(lottery_element, str) else "今天已经抽过奖"
                 print(f"抽奖状态: {lottery_result}")
+
+        # === 在所有操作完成后，重新获取最新的统计数据 ===
+        print("\n=== 操作完成，获取最新统计数据 ===")
+        time.sleep(3)  # 等待页面更新
+        
+        # 重新获取最新数据
+        final_stats = get_user_stats(driver)
+        print(f"最终统计: {final_stats}")
+        
+        # 更新 user_stats 为最终数据
+        user_stats['连续签到'] = final_stats['连续签到']
+        user_stats['累计签到'] = final_stats['累计签到']
+        user_stats['矿石总数'] = final_stats['矿石总数']
+        # 今日获得保持不变（已经在过程中累加）
 
         print(f"\n最终结果 - 签到: {sign_status}, 抽奖: {lottery_result}")
 
@@ -931,4 +930,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
