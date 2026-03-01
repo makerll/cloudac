@@ -795,13 +795,7 @@ def main():
     user_stats = {'连续签到': '0', '累计签到': '0', '矿石总数': '0', '今日获得': '0'}
 
     try:
-        # ========== 0-30分钟大随机延迟 ==========
-        big_delay = random.randint(0, 30)
-        if big_delay > 0:
-            print(f"⏰ 大延迟 {big_delay} 分钟（6:00-6:30随机执行）")
-            time.sleep(big_delay * 60)
-            print(f"✅ 当前时间: {format_china_time()}")
-        # ======================================
+        
         # 随机延迟
         delay = random.randint(5, 20)
         print(f"随机延迟 {delay} 秒")
@@ -942,6 +936,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
