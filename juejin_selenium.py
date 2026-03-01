@@ -899,6 +899,11 @@ def main():
         print("\n=== 操作完成，获取最新统计数据 ===")
         time.sleep(3)  # 等待页面更新
         
+        # 切换回签到页面（因为可能在抽奖页面）
+        print("正在切换回签到页面...")
+        driver.get(USER_PAGE_URL)
+        time.sleep(3)
+        
         # 重新获取最新数据
         final_stats = get_user_stats(driver)
         print(f"最终统计: {final_stats}")
@@ -937,6 +942,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
