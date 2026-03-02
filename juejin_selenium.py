@@ -270,13 +270,37 @@ def perform_sign(driver, sign_button):
         print("已点击签到按钮")
         time.sleep(3)
 
-        # 获取签到奖励
+        # 获取签到奖励 - 改进版
         page_text = driver.find_element(By.TAG_NAME, 'body').text
-        match = re.search(r'获得[^\d]*(\d+)[^\d]*矿石', page_text)
-        if match:
-            reward = f"获得 {match.group(1)} 矿石"
-        else:
-            reward = "签到成功"
+        
+        # 方法1：匹配常见的奖励提示
+        reward = "签到成功"
+        
+        # 从你最新的页面文本看，奖励数字可能在多个地方出现
+        # 匹配 "+700" 这样的格式（在日历格子里）
+        plus_match = re.search(r'\+(\d+)', page_text)
+        if plus_match:
+            # 但需要确认这是今天的奖励，不是其他天的
+            # 可以检查是否在"今日"附近
+            today_section = page_text[page_text.find('今日'):page_text.find('今日')+100]
+            today_match = re.search(r'\+(\d+)', today_section)
+            if today_match:
+                reward = f"获得 {today_match.group(1)} 矿石"
+                print(f"从今日区域匹配到: {reward}")
+            else:
+                # 如果没有"今日"上下文，就取第一个+号数字（通常是今天的）
+                reward = f"获得 {plus_match.group(1)} 矿石"
+        
+        # 方法2：匹配 "获得" 关键词
+        if reward == "签到成功":
+            match = re.search(r'获得[^\d]*(\d+)[^\d]*矿石', page_text)
+            if match:
+                reward = f"获得 {match.group(1)} 矿石"
+        
+        # 方法3：计算矿石增量（最准确）
+        if reward == "签到成功":
+            # 这个需要在外部计算，这里先返回简单成功
+            pass
 
         return True, reward
 
@@ -888,11 +912,24 @@ def main():
 
             if sign_success:
                 # 更新今日获得矿石数
+                # === 改进：从签到奖励中提取数字 ===
                 if "获得" in sign_reward:
                     reward_numbers = re.findall(r'\d+', sign_reward)
                     if reward_numbers:
-                        user_stats['今日获得'] = reward_numbers[0]
-                        print(f"今日签到获得: {user_stats['今日获得']} 矿石")
+                        sign_ore = int(reward_numbers[0])
+                        user_stats['今日获得'] = str(sign_ore)
+                        print(f"今日签到获得: {sign_ore} 矿石")
+                else:
+                    # 如果没提取到，通过矿石总数变化计算
+                    time.sleep(1)
+                    page_text = driver.find_element(By.TAG_NAME, 'body').text
+                    # 尝试匹配 "+700" 这样的格式
+                    plus_matches = re.findall(r'\+(\d+)', page_text)
+                    if plus_matches:
+                        # 取第一个（通常是今天的）
+                        sign_ore = int(plus_matches[0])
+                        user_stats['今日获得'] = str(sign_ore)
+                        print(f"今日签到获得(从+号提取): {sign_ore} 矿石")
 
                 sign_status = "签到成功"
                 sign_detail = sign_reward
@@ -994,6 +1031,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
