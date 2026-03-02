@@ -788,18 +788,19 @@ def main():
 
     if not check_config():
         return
+
+    driver = None
+    sign_status = "失败"
+    sign_detail = "未知错误"
+    lottery_result = "未执行"
+    user_stats = {'连续签到': '0', '累计签到': '0', '矿石总数': '0', '今日获得': '0'}
     # 在 main 函数中，获取签到前统计后立即保存截图
     print("正在获取签到前用户统计信息...")
     driver.save_screenshot("before_sign.png")  # 保存截图
     initial_stats = get_user_stats(driver)
     print(f"签到前统计: {initial_stats}")
     return
-    driver = None
-    sign_status = "失败"
-    sign_detail = "未知错误"
-    lottery_result = "未执行"
-    user_stats = {'连续签到': '0', '累计签到': '0', '矿石总数': '0', '今日获得': '0'}
-
+    
     try:
         
         # 随机延迟
@@ -942,6 +943,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
