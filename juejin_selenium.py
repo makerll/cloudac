@@ -781,19 +781,19 @@ def create_email_html(sign_status, sign_detail, lottery_result, user_stats):
     return html
 
 def main():
-    # 在 main 函数中，获取签到前统计后立即保存截图
-    print("正在获取签到前用户统计信息...")
-    driver.save_screenshot("before_sign.png")  # 保存截图
-    initial_stats = get_user_stats(driver)
-    print(f"签到前统计: {initial_stats}")
-    return
+
     """主函数"""
     start_time = format_china_time()
     print(f"[{start_time}] 开始执行掘金签到 (Selenium版)")
 
     if not check_config():
         return
-
+    # 在 main 函数中，获取签到前统计后立即保存截图
+    print("正在获取签到前用户统计信息...")
+    driver.save_screenshot("before_sign.png")  # 保存截图
+    initial_stats = get_user_stats(driver)
+    print(f"签到前统计: {initial_stats}")
+    return
     driver = None
     sign_status = "失败"
     sign_detail = "未知错误"
@@ -942,6 +942,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
