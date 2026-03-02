@@ -127,24 +127,76 @@ def get_user_stats(driver):
     try:
         # 获取页面所有可见文本
         page_text = driver.find_element(By.TAG_NAME, 'body').text
+        print("====== 页面文本分析 ======")
+        print(page_text[:500])  # 打印前500字符用于调试
+        print("=========================")
 
-        # 连续签到
-        match = re.search(r'(\d+)\s*连续签到天数', page_text)
+        # ===== 方法1：尝试匹配常见的数字+标签组合 =====
+        
+        # 从你最新的截图看，数字很可能紧挨着图标或标签
+        # 连续签到：通常在"连续签到天数"左侧或上方
+        match = re.search(r'(\d+)\s*(?:天)?\s*连续签到天数', page_text)
+        if not match:
+            # 尝试匹配更灵活的模式：数字后跟"连续"
+            match = re.search(r'(\d+)[^\d]*连续', page_text)
         if match:
             stats['连续签到'] = match.group(1)
+            print(f"匹配到连续签到: {stats['连续签到']}")
 
         # 累计签到
-        match = re.search(r'(\d+)\s*累计签到天数', page_text)
+        match = re.search(r'(\d+)\s*(?:天)?\s*累计签到天数', page_text)
+        if not match:
+            match = re.search(r'(\d+)[^\d]*累计', page_text)
         if match:
             stats['累计签到'] = match.group(1)
+            print(f"匹配到累计签到: {stats['累计签到']}")
 
-        # 矿石总数
-        match = re.search(r'(\d+)\s*当前矿石数', page_text)
-        if match:
-            stats['矿石总数'] = match.group(1)
+        # 矿石总数：寻找大数字（通常5-7位）附近有"矿石"关键词
+        ore_matches = re.findall(r'(\d{4,7})\s*矿石', page_text)
+        if ore_matches:
+            stats['矿石总数'] = ore_matches[0]
+            print(f"匹配到矿石总数: {stats['矿石总数']}")
+        else:
+            # 尝试找最大的数字（可能是矿石数）
+            all_numbers = re.findall(r'\b(\d{4,7})\b', page_text)
+            if all_numbers:
+                # 取最大的数字（通常是矿石总数）
+                stats['矿石总数'] = max(all_numbers, key=int)
+                print(f"取最大数字作为矿石总数: {stats['矿石总数']}")
 
-        # 今日获得（稍后从签到结果更新）
-        
+        # ===== 方法2：如果以上都失败，尝试通过JavaScript获取DOM元素中的数字 =====
+        if stats['连续签到'] == '0' or stats['累计签到'] == '0' or stats['矿石总数'] == '0':
+            print("尝试通过JavaScript获取数据...")
+            
+            # 使用JavaScript查找所有可能包含数字的可见元素
+            js_script = """
+            const elements = document.querySelectorAll('*');
+            const textContents = [];
+            for (let el of elements) {
+                if (el.children.length === 0 && el.textContent.trim() && el.offsetParent !== null) {
+                    textContents.push(el.textContent.trim());
+                }
+            }
+            return textContents.join('\\n');
+            """
+            visible_text = driver.execute_script(js_script)
+            
+            # 在可见文本中再次尝试匹配
+            if stats['连续签到'] == '0':
+                match = re.search(r'(\d+)\s*(?:天)?\s*连续', visible_text)
+                if match:
+                    stats['连续签到'] = match.group(1)
+            
+            if stats['累计签到'] == '0':
+                match = re.search(r'(\d+)\s*(?:天)?\s*累计', visible_text)
+                if match:
+                    stats['累计签到'] = match.group(1)
+            
+            if stats['矿石总数'] == '0':
+                match = re.search(r'(\d{4,7})\s*矿石', visible_text)
+                if match:
+                    stats['矿石总数'] = match.group(1)
+
     except Exception as e:
         print(f"获取用户统计信息时出错: {e}")
 
@@ -153,6 +205,10 @@ def get_user_stats(driver):
 def check_sign_status(driver):
     """检查今日是否已签到，并返回签到按钮"""
     try:
+        # 打印页面标题和当前URL用于调试
+        print(f"当前页面标题: {driver.title}")
+        print(f"当前URL: {driver.current_url}")
+        
         # 优先检查是否已显示“今日已签到”状态标签
         signed_elements = driver.find_elements(By.XPATH, '//*[contains(text(), "今日已签到")]')
         for element in signed_elements:
@@ -160,13 +216,16 @@ def check_sign_status(driver):
                 print("检测到'今日已签到'状态标签")
                 return True, None
 
-        # 查找可点击的签到按钮
+        # 查找可点击的签到按钮 - 增加更多选择器
         button_selectors = [
             '//button[contains(text(), "签到")]',
             '//button[contains(text(), "立即签到")]',
-            '//div[@role="button" and contains(text(), "签到")]',
+            '//div[contains(text(), "立即签到")]',
+            '//span[contains(text(), "立即签到")]',
+            '//*[contains(@class, "sign") and contains(text(), "签到")]',
             '.signin-btn',
             '.check-in-btn',
+            'button.sign-btn',
         ]
 
         for selector in button_selectors:
@@ -179,13 +238,13 @@ def check_sign_status(driver):
                 for element in elements:
                     if element.is_displayed() and element.is_enabled():
                         tag_name = element.tag_name.lower()
-                        if tag_name in ['button', 'a'] or element.get_attribute('role') == 'button':
-                            print(f"找到可点击的签到按钮: {element.text}")
-                            return False, element
-            except:
+                        print(f"找到可能的签到按钮: 标签={tag_name}, 文本={element.text}, 可见={element.is_displayed()}")
+                        return False, element
+            except Exception as e:
+                print(f"选择器 {selector} 查找失败: {e}")
                 continue
 
-        print("未找到明确的签到按钮，假设已签到")
+        print("未找到明确的签到按钮")
         return True, None
 
     except Exception as e:
@@ -785,7 +844,6 @@ def main():
     """主函数"""
     start_time = format_china_time()
     print(f"[{start_time}] 开始执行掘金签到 (Selenium版)")
-
     if not check_config():
         return
 
@@ -794,13 +852,6 @@ def main():
     sign_detail = "未知错误"
     lottery_result = "未执行"
     user_stats = {'连续签到': '0', '累计签到': '0', '矿石总数': '0', '今日获得': '0'}
-    # 在 main 函数中，获取签到前统计后立即保存截图
-    print("正在获取签到前用户统计信息...")
-    driver.save_screenshot("before_sign.png")  # 保存截图
-    initial_stats = get_user_stats(driver)
-    print(f"签到前统计: {initial_stats}")
-    return
-    
     try:
         
         # 随机延迟
@@ -943,6 +994,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
